@@ -1,0 +1,47 @@
+name: btc-greeks
+region: sgp
+
+services:
+  - name: web
+    github:
+      repo: Emmasu/demo-claude
+      branch: main
+      deploy_on_push: true
+    source_dir: 4-option
+    run_command: python3 server.py
+    environment_slug: python
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    routes:
+      - path: /
+    envs:
+      - key: CONVEX_URL
+        value: https://small-bulldog-987.convex.cloud
+      - key: DERIBIT_CALL
+        value: BTC-27MAR26-74000-C
+      - key: DERIBIT_PUT
+        value: BTC-27MAR26-74000-P
+      - key: MNT_CALL
+        value: MNT-27MAR26-0.76-C-USDT
+
+workers:
+  - name: fetcher
+    github:
+      repo: Emmasu/demo-claude
+      branch: main
+      deploy_on_push: true
+    source_dir: 4-option
+    run_command: python3 fetcher.py
+    environment_slug: python
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    envs:
+      - key: CONVEX_URL
+        value: https://small-bulldog-987.convex.cloud
+      - key: DERIBIT_CALL
+        value: BTC-27MAR26-74000-C
+      - key: DERIBIT_PUT
+        value: BTC-27MAR26-74000-P
+      - key: MNT_CALL
+        value: MNT-27MAR26-0.76-C-USDT

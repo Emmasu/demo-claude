@@ -1,0 +1,10 @@
+{
+  "name": "btc-greeks",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "convex dev"
+  },
+  "dependencies": {
+    "convex": "^1.23.0"
+  }
+}
