@@ -4113,9 +4113,11 @@ document.querySelectorAll('.tp-btn').forEach(btn => {
     applyRange(start, dataEnd);
     if (currentExchange === 'bybit') {
       fetchAndMergeMnt();
-      // If Bybit 1-min and requested range exceeds available data, backfill
+      // If requested range exceeds available data, backfill
       if (currentRes === 'min' && dataEnd - days*24*3600*1000 < dataStart) {
         backfillMntMin(days).catch(()=>{});
+      } else if (currentRes === 'hour' && dataEnd - days*24*3600*1000 < dataStart) {
+        backfillMntHour().catch(()=>{});
       }
     }
   });
@@ -4319,6 +4321,13 @@ async function backfillMntHour() {
     convexCall('mutation', 'candles:append', { name: 'mnt_hour', newTicks: chunk.ticks, newCloses: chunk.close }).catch(()=>{});
     endMs = MNT_HOUR_TICKS[0];
     if (endMs >= prevFirst) break;
+    // Update chart after each chunk
+    if (currentExchange === 'bybit' && currentRes === 'hour') {
+      const activeBtn = document.querySelector('.tp-btn.active');
+      const days = activeBtn ? +activeBtn.dataset.days : 30;
+      const end = MNT_HOUR_TICKS[MNT_HOUR_TICKS.length - 1];
+      applyRange(Math.max(MNT_HOUR_TICKS[0], end - days*86400000), end);
+    }
   }
 }
 
