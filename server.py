@@ -46,6 +46,10 @@ class CombinedHandler(http.server.BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             self._proxy_post(target, body)
+        elif self.path == "/api/ai":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            self._handle_ai(body)
         else:
             self.send_error(404)
 
@@ -108,6 +112,45 @@ class CombinedHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(502)
             self.end_headers()
             self.wfile.write(str(e).encode())
+
+    def _handle_ai(self, body):
+        import json
+        import anthropic
+        try:
+            data = json.loads(body)
+            highlight = data.get("highlight", "")
+            question  = data.get("question", "")
+            api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+            client = anthropic.Anthropic(api_key=api_key)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            system = (
+                "You are an expert AI educator specializing in the Anthropic Claude ecosystem, "
+                "agent frameworks, MCP, and AI engineering. Answer questions clearly and concisely, "
+                "referencing the highlighted text as context. Use concrete examples where helpful."
+            )
+            user_msg = f'The user highlighted this text:\n\n"{highlight}"\n\nQuestion: {question}'
+            with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=1024,
+                system=system,
+                messages=[{"role": "user", "content": user_msg}]
+            ) as stream:
+                for text in stream.text_stream:
+                    self.wfile.write(
+                        f'data: {json.dumps({"text": text})}\n\n'.encode()
+                    )
+                    self.wfile.flush()
+            self.wfile.write(b"data: [DONE]\n\n")
+            self.wfile.flush()
+        except Exception as e:
+            self.wfile.write(
+                f'data: {json.dumps({"text": f"Error: {e}"})}\n\ndata: [DONE]\n\n'.encode()
+            )
+            self.wfile.flush()
 
     def log_message(self, fmt, *args):
         print(fmt % args)

@@ -126,6 +126,7 @@
     /* ── Main ─────────────────────────────────────── */
     #main {
       margin-left: var(--sidebar-w);
+      margin-right: 320px;
       flex: 1;
       max-width: 900px;
       padding: 3rem 3rem 6rem;
@@ -529,6 +530,349 @@
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ══════════════════════════════════════════════
+       ANNOTATION SYSTEM
+    ══════════════════════════════════════════════ */
+
+    /* ── Comment Panel ── */
+    #comment-panel {
+      width: 310px;
+      position: fixed;
+      right: 0; top: 0; bottom: 0;
+      background: #111720;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 90;
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    }
+
+    #comment-panel.hidden {
+      transform: translateX(100%);
+    }
+
+    .cp-header {
+      padding: 1rem 1.1rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .cp-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .cp-count {
+      background: var(--accent);
+      color: #0a1628;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      display: none;
+    }
+
+    .cp-count.visible { display: inline-block; }
+
+    .cp-toggle {
+      background: none;
+      border: none;
+      color: var(--dim);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.25rem;
+      border-radius: 4px;
+      line-height: 1;
+    }
+
+    .cp-toggle:hover { color: var(--text); background: var(--border); }
+
+    #comments-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+    }
+
+    .cp-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 0.75rem;
+      color: var(--dim);
+      font-size: 0.82rem;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .cp-empty-icon { font-size: 2rem; opacity: 0.4; }
+
+    /* ── Comment Cards ── */
+    .comment-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: 8px;
+      padding: 0.9rem;
+      margin-bottom: 0.65rem;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .comment-card:hover {
+      border-color: var(--border2);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+
+    .comment-card.focused {
+      border-left-color: #f6c46a;
+      box-shadow: 0 0 0 1px rgba(246,196,106,0.15), 0 4px 16px rgba(0,0,0,0.4);
+    }
+
+    .comment-card.focused .cc-quote { border-color: rgba(246,196,106,0.4); }
+
+    .cc-quote {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-style: italic;
+      border-left: 2px solid var(--border2);
+      padding-left: 0.6rem;
+      margin-bottom: 0.65rem;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .cc-note {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.82rem;
+      font-family: inherit;
+      padding: 0.5rem 0.6rem;
+      resize: none;
+      outline: none;
+      line-height: 1.5;
+      margin-bottom: 0.6rem;
+      transition: border-color 0.15s;
+    }
+
+    .cc-note:focus { border-color: var(--accent); }
+    .cc-note::placeholder { color: var(--dim); }
+
+    .cc-actions {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .cc-btn {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.3rem 0.7rem;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .cc-btn-ai {
+      background: rgba(99,179,237,0.1);
+      color: var(--accent);
+      border-color: rgba(99,179,237,0.25);
+    }
+
+    .cc-btn-ai:hover { background: rgba(99,179,237,0.2); }
+
+    .cc-btn-del {
+      background: rgba(252,129,129,0.08);
+      color: var(--red);
+      border-color: rgba(252,129,129,0.2);
+      margin-left: auto;
+    }
+
+    .cc-btn-del:hover { background: rgba(252,129,129,0.18); }
+
+    /* ── AI Input ── */
+    .cc-ai-input-wrap {
+      display: none;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .cc-ai-input-wrap.open { display: flex; }
+
+    .cc-ai-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid rgba(99,179,237,0.3);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.8rem;
+      font-family: inherit;
+      padding: 0.4rem 0.6rem;
+      outline: none;
+    }
+
+    .cc-ai-input:focus { border-color: var(--accent); }
+
+    .cc-ai-send {
+      background: var(--accent);
+      color: #0a1628;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.4rem 0.65rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+
+    .cc-ai-send:hover { background: #4299e1; }
+
+    /* ── AI Response ── */
+    .cc-ai-response {
+      background: rgba(99,179,237,0.05);
+      border: 1px solid rgba(99,179,237,0.15);
+      border-radius: 7px;
+      padding: 0.75rem;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      color: #a8c4d8;
+      display: none;
+    }
+
+    .cc-ai-response.visible { display: block; }
+
+    .cc-ai-response .ai-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .cc-ai-response .ai-label::before {
+      content: "";
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+      animation: aipulse 1.5s ease infinite;
+    }
+
+    .cc-ai-response.done .ai-label::before {
+      animation: none;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    @keyframes aipulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .cc-ai-content { white-space: pre-wrap; word-break: break-word; }
+
+    .cc-ai-content strong { color: var(--text); }
+
+    /* ── Selection Tooltip ── */
+    #sel-tooltip {
+      position: absolute;
+      background: #1a2535;
+      border: 1px solid rgba(99,179,237,0.35);
+      border-radius: 8px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      display: none;
+      pointer-events: all;
+      white-space: nowrap;
+      transform: translateX(-50%);
+      transition: opacity 0.1s;
+    }
+
+    #sel-tooltip::after {
+      content: "";
+      position: absolute;
+      top: 100%; left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: rgba(99,179,237,0.35);
+    }
+
+    #sel-tooltip:hover { background: #1e2f45; }
+
+    /* ── Text Highlights ── */
+    mark.anno {
+      background: rgba(246,196,106,0.18);
+      border-bottom: 2px solid rgba(246,196,106,0.6);
+      border-radius: 2px;
+      cursor: pointer;
+      color: inherit;
+      padding: 0 1px;
+      transition: background 0.15s;
+    }
+
+    mark.anno:hover,
+    mark.anno.active {
+      background: rgba(246,196,106,0.35);
+      border-bottom-color: #f6c46a;
+    }
+
+    /* ── Panel toggle button (fixed) ── */
+    #panel-open-btn {
+      position: fixed;
+      right: 0; top: 50%;
+      transform: translateY(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      writing-mode: vertical-lr;
+      padding: 0.75rem 0.4rem;
+      cursor: pointer;
+      z-index: 89;
+      display: none;
+      letter-spacing: 0.08em;
+      transition: background 0.15s;
+    }
+
+    #panel-open-btn.visible { display: block; }
+    #panel-open-btn:hover { background: var(--border); color: var(--text); }
+
+    @media (max-width: 1100px) {
+      #main { margin-right: 0; }
+      #comment-panel { transform: translateX(100%); }
+      #comment-panel.mobile-open { transform: translateX(0); }
+      #panel-open-btn { display: block; }
+    }
   </style>
 </head>
 <body>
@@ -1987,6 +2331,329 @@ asyncio.run(main())</code></pre>
   }, { threshold: 0.2 });
 
   sections.forEach(s => observer.observe(s));
+</script>
+
+<!-- ═══════════════ COMMENT PANEL ═══════════════ -->
+<aside id="comment-panel">
+  <div class="cp-header">
+    <div class="cp-title">
+      💬 Comments
+      <span class="cp-count" id="cp-count">0</span>
+    </div>
+    <button class="cp-toggle" id="cp-close" title="Close panel">✕</button>
+  </div>
+  <div id="comments-list">
+    <div class="cp-empty" id="cp-empty">
+      <div class="cp-empty-icon">✍️</div>
+      <div>Select any text to<br>add a comment or ask AI</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Selection tooltip -->
+<div id="sel-tooltip">💬 Comment</div>
+
+<!-- Panel reopen button -->
+<button id="panel-open-btn" onclick="openPanel()">Comments</button>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   ANNOTATION SYSTEM
+══════════════════════════════════════════════════════ */
+
+const comments  = new Map();   // id → { id, markEl, text }
+let   pendingRange = null;
+let   commentSeq   = 0;
+
+// ── Panel open/close ─────────────────────────────────
+
+function openPanel() {
+  const p = document.getElementById('comment-panel');
+  p.classList.remove('hidden');
+  p.classList.add('mobile-open');
+  document.getElementById('panel-open-btn').classList.remove('visible');
+}
+
+document.getElementById('cp-close').addEventListener('click', () => {
+  const p = document.getElementById('comment-panel');
+  p.classList.add('hidden');
+  p.classList.remove('mobile-open');
+  document.getElementById('panel-open-btn').classList.add('visible');
+});
+
+// ── Text selection → tooltip ─────────────────────────
+
+document.addEventListener('mouseup', e => {
+  // slight delay so selection is stable
+  setTimeout(() => handleSelection(e), 10);
+});
+
+document.addEventListener('keyup', e => {
+  setTimeout(() => handleSelection(e), 10);
+});
+
+function handleSelection(e) {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) {
+    hideTooltip(); return;
+  }
+  const text = sel.toString().trim();
+  if (text.length < 3) { hideTooltip(); return; }
+
+  const range = sel.getRangeAt(0);
+
+  // Don't trigger inside comment panel
+  const panel = document.getElementById('comment-panel');
+  if (panel.contains(range.commonAncestorContainer)) {
+    hideTooltip(); return;
+  }
+
+  pendingRange = range.cloneRange();
+  const rect   = range.getBoundingClientRect();
+  showTooltip(rect.left + rect.width / 2, rect.top + window.scrollY - 48);
+}
+
+function showTooltip(x, y) {
+  const t = document.getElementById('sel-tooltip');
+  t.style.display = 'block';
+  t.style.left    = `${x}px`;
+  t.style.top     = `${y}px`;
+}
+
+function hideTooltip() {
+  document.getElementById('sel-tooltip').style.display = 'none';
+  pendingRange = null;
+}
+
+document.getElementById('sel-tooltip').addEventListener('mousedown', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (pendingRange) addComment(pendingRange);
+  hideTooltip();
+});
+
+// ── Create comment ────────────────────────────────────
+
+function addComment(range) {
+  const id   = `c${++commentSeq}`;
+  const text = range.toString().trim();
+
+  // Wrap selection in <mark>
+  const mark = wrapRange(range, id);
+  if (!mark) return;
+
+  comments.set(id, { id, markEl: mark, text });
+
+  // Build card
+  const card = buildCard(id, text);
+  const list = document.getElementById('comments-list');
+  document.getElementById('cp-empty').style.display = 'none';
+  list.appendChild(card);
+
+  updateCount();
+  openPanel();
+  focusComment(id);
+
+  // Auto-focus the note textarea
+  setTimeout(() => card.querySelector('.cc-note').focus(), 150);
+
+  // Clear browser selection
+  window.getSelection().removeAllRanges();
+}
+
+function wrapRange(range, id) {
+  const mark = document.createElement('mark');
+  mark.className = 'anno';
+  mark.dataset.cid = id;
+  mark.addEventListener('click', e => { e.stopPropagation(); focusComment(id); });
+
+  try {
+    range.surroundContents(mark);
+  } catch {
+    // selection spans multiple nodes — extract & rewrap
+    const frag = range.extractContents();
+    mark.appendChild(frag);
+    range.insertNode(mark);
+  }
+  return mark;
+}
+
+// ── Build comment card DOM ────────────────────────────
+
+function buildCard(id, text) {
+  const card = document.createElement('div');
+  card.className = 'comment-card';
+  card.id = `card-${id}`;
+
+  const short = text.length > 100 ? text.slice(0, 100) + '…' : text;
+
+  card.innerHTML = `
+    <div class="cc-quote">${escHtml(short)}</div>
+    <textarea class="cc-note" placeholder="Add a note…" rows="2"
+      onclick="event.stopPropagation()"></textarea>
+    <div class="cc-actions">
+      <button class="cc-btn cc-btn-ai"
+        onclick="event.stopPropagation(); toggleAIInput('${id}')">✨ Ask AI</button>
+      <button class="cc-btn cc-btn-del"
+        onclick="event.stopPropagation(); deleteComment('${id}')">Delete</button>
+    </div>
+    <div class="cc-ai-input-wrap" id="ai-wrap-${id}">
+      <input class="cc-ai-input" id="ai-q-${id}"
+        placeholder="Ask an expert about this…"
+        onkeydown="if(event.key==='Enter') submitAI('${id}')">
+      <button class="cc-ai-send"
+        onclick="event.stopPropagation(); submitAI('${id}')">↑</button>
+    </div>
+    <div class="cc-ai-response" id="ai-resp-${id}">
+      <div class="ai-label">AI Expert</div>
+      <div class="cc-ai-content" id="ai-text-${id}"></div>
+    </div>
+  `;
+
+  // Clicking card body scrolls to highlight
+  card.addEventListener('click', () => scrollToMark(id));
+  return card;
+}
+
+// ── Focus / scroll helpers ────────────────────────────
+
+function focusComment(id) {
+  document.querySelectorAll('.comment-card').forEach(c => c.classList.remove('focused'));
+  document.querySelectorAll('mark.anno').forEach(m => m.classList.remove('active'));
+
+  const card = document.getElementById(`card-${id}`);
+  if (card) {
+    card.classList.add('focused');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  const c = comments.get(id);
+  if (c?.markEl) c.markEl.classList.add('active');
+}
+
+function scrollToMark(id) {
+  const c = comments.get(id);
+  if (!c?.markEl) return;
+  c.markEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  c.markEl.classList.add('active');
+}
+
+// ── Delete comment ────────────────────────────────────
+
+function deleteComment(id) {
+  const c = comments.get(id);
+  if (!c) return;
+
+  // Unwrap mark
+  if (c.markEl?.parentNode) {
+    const parent = c.markEl.parentNode;
+    while (c.markEl.firstChild) parent.insertBefore(c.markEl.firstChild, c.markEl);
+    parent.removeChild(c.markEl);
+  }
+
+  document.getElementById(`card-${id}`)?.remove();
+  comments.delete(id);
+  updateCount();
+
+  if (comments.size === 0) {
+    document.getElementById('cp-empty').style.display = 'flex';
+  }
+}
+
+// ── AI input toggle ───────────────────────────────────
+
+function toggleAIInput(id) {
+  const wrap = document.getElementById(`ai-wrap-${id}`);
+  const isOpen = wrap.classList.contains('open');
+  wrap.classList.toggle('open');
+  if (!isOpen) document.getElementById(`ai-q-${id}`)?.focus();
+}
+
+// ── Submit AI ─────────────────────────────────────────
+
+async function submitAI(id) {
+  const c = comments.get(id);
+  if (!c) return;
+
+  const qEl   = document.getElementById(`ai-q-${id}`);
+  const question = qEl.value.trim();
+  if (!question) return;
+
+  qEl.value = '';
+  document.getElementById(`ai-wrap-${id}`).classList.remove('open');
+
+  const respEl = document.getElementById(`ai-resp-${id}`);
+  const textEl = document.getElementById(`ai-text-${id}`);
+  respEl.classList.add('visible');
+  respEl.classList.remove('done');
+  textEl.textContent = '';
+
+  try {
+    const res = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ highlight: c.text, question })
+    });
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let   buf     = '';
+    let   full    = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') break;
+        try {
+          const { text } = JSON.parse(raw);
+          if (text) {
+            full += text;
+            // Simple markdown: bold **x**, inline code `x`
+            textEl.innerHTML = renderMd(full);
+          }
+        } catch {}
+      }
+    }
+    respEl.classList.add('done');
+    focusComment(id);
+
+  } catch (err) {
+    textEl.textContent = `Error: ${err.message}`;
+    respEl.classList.add('done');
+  }
+}
+
+// ── Minimal markdown renderer ─────────────────────────
+
+function renderMd(text) {
+  return escHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
+}
+
+// ── Utilities ─────────────────────────────────────────
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updateCount() {
+  const el = document.getElementById('cp-count');
+  const n  = comments.size;
+  el.textContent = n;
+  el.classList.toggle('visible', n > 0);
+}
+
+// Close tooltip when clicking elsewhere
+document.addEventListener('mousedown', e => {
+  if (!e.target.closest('#sel-tooltip')) hideTooltip();
+});
 </script>
 
 </body>
