@@ -4317,7 +4317,7 @@ async function backfillMntHour() {
     const chunk = await fetchBybitKline('MNTUSDT', 60, 1000, endMs);
     if (!chunk || !chunk.ticks.length) break;
     const prevFirst = endMs;
-    mergeInto(MNT_HOUR_TICKS, MNT_HOUR_CLOSE, chunk.ticks, chunk.close);
+    mergeIntoFull(MNT_HOUR_TICKS, MNT_HOUR_CLOSE, chunk.ticks, chunk.close);
     convexCall('mutation', 'candles:append', { name: 'mnt_hour', newTicks: chunk.ticks, newCloses: chunk.close }).catch(()=>{});
     endMs = MNT_HOUR_TICKS[0];
     if (endMs >= prevFirst) break;
@@ -4379,7 +4379,7 @@ async function fetchAndMergeMnt() {
           backfillMntMin(7).catch(()=>{});
         }
       } else {
-        mergeInto(MNT_HOUR_TICKS, MNT_HOUR_CLOSE, kline.ticks, kline.close);
+        mergeIntoFull(MNT_HOUR_TICKS, MNT_HOUR_CLOSE, kline.ticks, kline.close);
         convexCall('mutation', 'candles:append', { name: 'mnt_hour', newTicks: kline.ticks, newCloses: kline.close }).catch(()=>{});
         // Backfill older history if less than 90D available
         if (MNT_HOUR_TICKS.length && (Date.now() - MNT_HOUR_TICKS[0]) < 89 * 24 * 3600 * 1000) {
