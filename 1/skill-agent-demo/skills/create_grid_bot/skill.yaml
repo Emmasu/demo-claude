@@ -1,0 +1,23 @@
+name: create_grid_bot
+description: Create a crypto grid trading bot
+
+inputs:
+  symbol:
+    type: string
+    description: Trading symbol
+
+  lower_price:
+    type: number
+    description: Lower bound price
+
+  upper_price:
+    type: number
+    description: Upper bound price
+
+  grid_number:
+    type: number
+    description: Number of grids
+
+  capital:
+    type: number
+    description: Capital amount

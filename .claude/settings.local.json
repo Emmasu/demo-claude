@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(npm install @anthropic-ai/sdk)",
+      "Bash(npm install dotenv)",
+      "Bash(node -e \":*)",
+      "Bash(curl -s -H \"Authorization: Bearer sk-tl-dOyDmRdNVrCi_iSnG-w\" https://litellm-de.yijin.io/bedrock/v1/models)",
+      "Bash(curl -s -H \"Authorization: Bearer sk-tl-dOyDmRdNVrCi_iSnG-w\" https://litellm-de.yijin.io/v1/models)",
+      "Bash(npm install)",
+      "Bash(npm start)"
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+DEFAULT_EXCHANGE = "binance"
+DEFAULT_SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+DEFAULT_TIMEFRAME = "1h"
+DB_PATH = "crypto_data.db"

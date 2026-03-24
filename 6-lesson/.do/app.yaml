@@ -1,0 +1,12 @@
+name: course-notes
+region: sgp
+
+static_sites:
+  - name: course-notes
+    github:
+      repo: Emmasu/demo-claude
+      branch: main
+      deploy_on_push: true
+    source_dir: 6-lesson
+    index_document: index.html
+    error_document: index.html

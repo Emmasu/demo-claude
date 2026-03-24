@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(printf \"取消 grid_123456 bot\\\\n\\\\n\" | npm start 2>&1)",
+      "Bash(sleep 1 && curl -s -X POST http://localhost:3000/chat -H \"Content-Type: application/json\" -d '{\"message\":\"创建BTC网格 区间60000-70000 网格20 资金10000\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/chat -H \"Content-Type: application/json\" -d '{\"message\":\"取消 grid_123456 bot\"}')",
+      "Bash(lsof -ti:3000 | xargs kill -9 2>/dev/null && echo \"Server stopped\" || echo \"No server running on port 3000\")",
+      "Bash(npm install 2>&1)",
+      "Bash(npm run server 2>&1)",
+      "Bash(lsof -ti:3000 | xargs kill -9 2>/dev/null; true)",
+      "Bash(lsof -ti:3000 | xargs kill -9 2>/dev/null; true')"
+    ]
+  }
+}

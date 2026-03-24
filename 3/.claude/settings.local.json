@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(sqlite3:*)",
+      "WebFetch(domain:www.binance.com)",
+      "Bash(curl -s \"https://www.binance.com/en/support/faq/detail/d5f441e8ab544a5b98241e00efb3a4ab\" -H \"User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\")",
+      "Bash(python3 -c \"import sys; from html.parser import HTMLParser;:*)",
+      "Bash(curl -s -L \"https://www.binance.com/en/support/faq/detail/d5f441e8ab544a5b98241e00efb3a4ab\" -H \"User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36\" -H \"Accept: text/html,application/xhtml+xml\")",
+      "Bash(curl -s -L \"https://web.archive.org/web/2024/https://www.binance.com/en/support/faq/detail/d5f441e8ab544a5b98241e00efb3a4ab\" -H \"User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36\")",
+      "Bash(curl -s \"https://www.binance.com/bapi/composite/v1/public/cms/article/detail/query?articleCode=d5f441e8ab544a5b98241e00efb3a4ab\" -H \"User-Agent: Mozilla/5.0\" -H \"Accept: application/json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d, indent=2\\)\\)\")",
+      "WebFetch(domain:webcache.googleusercontent.com)",
+      "WebFetch(domain:academy.binance.com)",
+      "Bash(curl -s \"https://www.binance.com/bapi/composite/v1/public/cms/article/detail/query?articleCode=d5f441e8ab544a5b98241e00efb3a4ab&locale=en\" -H \"User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/122.0.0.0 Safari/537.36\" -H \"clienttype: web\")",
+      "Bash(python3:*)",
+      "Bash(open:*)"
+    ]
+  }
+}

@@ -1,0 +1,71 @@
+name: create_spot_grid_bot
+version: "1.0.0"
+description: 创建现货网格交易机器人，根据用户指定的交易对、价格区间和网格数量自动计算网格并提交到交易所
+
+author: openclaw-demo
+category: trading
+
+trigger:
+  keywords:
+    - 创建网格
+    - 网格机器人
+    - 现货网格
+    - 网格交易
+    - create grid bot
+
+input_schema:
+  type: object
+  properties:
+    symbol:
+      type: string
+      description: 交易对，如 BTCUSDT、ETHUSDT
+      example: BTCUSDT
+    lower_price:
+      type: number
+      description: 网格价格下限
+      example: 60000
+    upper_price:
+      type: number
+      description: 网格价格上限
+      example: 70000
+    grid_count:
+      type: integer
+      description: 网格数量（建议 5-200）
+      example: 20
+    investment:
+      type: number
+      description: 投入的 USDT 金额（可选）
+      example: 10000
+    grid_type:
+      type: string
+      enum: [arithmetic, geometric]
+      default: geometric
+      description: 网格类型，等差(arithmetic) 或 等比(geometric)
+  required:
+    - symbol
+    - lower_price
+    - upper_price
+    - grid_count
+
+output_schema:
+  type: object
+  properties:
+    bot_id:
+      type: string
+      description: 创建成功的机器人 ID
+    symbol:
+      type: string
+    grid_count:
+      type: integer
+    price_levels:
+      type: array
+      items:
+        type: number
+    status:
+      type: string
+      enum: [running, failed]
+    summary:
+      type: string
+      description: 给用户展示的结果摘要
+
+handler: handler.js

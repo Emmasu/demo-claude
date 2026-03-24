@@ -1,0 +1,7 @@
+name: cancel_grid_bot
+description: Cancel a running crypto grid trading bot
+
+inputs:
+  bot_id:
+    type: string
+    description: The ID of the grid bot to cancel

@@ -1,0 +1,1993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Skills with Anthropic — Full Course Notes</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a202c;
+      --surface2: #212836;
+      --border: #2d3748;
+      --border2: #3d4f68;
+      --text: #e2e8f0;
+      --muted: #8896a8;
+      --dim: #4a5568;
+      --accent: #63b3ed;
+      --accent2: #4299e1;
+      --green: #68d391;
+      --yellow: #f6e05e;
+      --red: #fc8181;
+      --purple: #b794f4;
+      --orange: #fbd38d;
+      --sidebar-w: 280px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.75;
+      display: flex;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: fixed;
+      top: 0; left: 0;
+      overflow-y: auto;
+      padding: 1.5rem 0 3rem;
+      z-index: 100;
+    }
+
+    #sidebar .brand {
+      padding: 0 1.25rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+
+    #sidebar .brand .pill {
+      display: inline-block;
+      background: #1e3a5f;
+      color: var(--accent);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      margin-bottom: 0.5rem;
+    }
+
+    #sidebar .brand h2 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    #sidebar nav a {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.45rem 1.25rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+
+    #sidebar nav a:hover,
+    #sidebar nav a.active {
+      color: var(--accent);
+      background: rgba(99,179,237,0.06);
+      border-left-color: var(--accent);
+    }
+
+    #sidebar nav a .num {
+      background: var(--border);
+      color: var(--dim);
+      font-size: 0.65rem;
+      font-weight: 700;
+      width: 1.4rem;
+      height: 1.4rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    #sidebar nav a .dur {
+      margin-left: auto;
+      font-size: 0.7rem;
+      color: var(--dim);
+    }
+
+    #sidebar .section-label {
+      padding: 1rem 1.25rem 0.3rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+
+    /* ── Main ─────────────────────────────────────── */
+    #main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      max-width: 900px;
+      padding: 3rem 3rem 6rem;
+    }
+
+    /* ── Header ───────────────────────────────────── */
+    .page-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .page-header .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #1e3a5f;
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+
+    .page-header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #f7fafc;
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
+    }
+
+    .page-header .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .page-header .meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    /* ── Lesson Sections ──────────────────────────── */
+    .lesson {
+      scroll-margin-top: 2rem;
+      margin-bottom: 4rem;
+      padding-bottom: 4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .lesson:last-child { border-bottom: none; }
+
+    .lesson-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .lesson-num-badge {
+      background: linear-gradient(135deg, #2b4b7e, #1e3a5f);
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 800;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.2rem;
+    }
+
+    .lesson-header-text h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f7fafc;
+      margin-bottom: 0.3rem;
+    }
+
+    .lesson-header-text .tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+    }
+
+    .tag-blue { background: #1e3a5f; color: var(--accent); }
+    .tag-gray { background: var(--border); color: var(--muted); }
+    .tag-green { background: #1a3a2a; color: var(--green); }
+    .tag-purple { background: #2d1f5e; color: var(--purple); }
+
+    a.tag-video {
+      background: #1e3a5f;
+      color: var(--accent);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    a.tag-video:hover {
+      background: #2a4f80;
+      color: #90cdf4;
+    }
+    a.tag-video::before {
+      content: "▶";
+      font-size: 0.6rem;
+    }
+
+    /* ── Prose ────────────────────────────────────── */
+    .lesson p {
+      color: #c0ccd8;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .lesson h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #f0f4f8;
+      margin: 2rem 0 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .lesson h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 1.5rem 0 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.8rem;
+    }
+
+    .lesson ul, .lesson ol {
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .lesson li {
+      color: #c0ccd8;
+      font-size: 0.95rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .lesson li::marker { color: var(--dim); }
+
+    .lesson strong { color: var(--text); }
+
+    .lesson em { color: var(--muted); font-style: italic; }
+
+    /* ── Code ─────────────────────────────────────── */
+    code {
+      background: #2a3346;
+      color: var(--green);
+      font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+      font-size: 0.82rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+    }
+
+    pre {
+      background: #131920;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+      position: relative;
+    }
+
+    pre .lang-label {
+      position: absolute;
+      top: 0.6rem;
+      right: 0.9rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+
+    pre code {
+      background: none;
+      color: #a8d8a8;
+      font-size: 0.85rem;
+      padding: 0;
+      line-height: 1.7;
+    }
+
+    .kw { color: #c792ea; }  /* keyword */
+    .st { color: #f7c38a; }  /* string */
+    .cm { color: #546e7a; font-style: italic; }  /* comment */
+    .fn { color: #82aaff; }  /* function */
+    .num { color: #f78c6c; } /* number */
+    .key { color: #89ddff; } /* yaml key */
+    .val { color: #c3e88d; } /* yaml val */
+
+    /* ── Callouts ─────────────────────────────────── */
+    .callout {
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      font-size: 0.9rem;
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .callout-icon { flex-shrink: 0; font-size: 1rem; margin-top: 0.05rem; }
+    .callout-body { flex: 1; }
+    .callout-body strong { display: block; margin-bottom: 0.25rem; }
+
+    .callout-info { background: #13243a; border: 1px solid #2a4a6e; color: #90cdf4; }
+    .callout-warn { background: #2d1f0e; border: 1px solid #5c3d1a; color: #fbd38d; }
+    .callout-tip  { background: #0f2a1f; border: 1px solid #1a5c3a; color: #9ae6b4; }
+    .callout-danger { background: #2d0f0f; border: 1px solid #5c1a1a; color: #fc8181; }
+
+    /* ── Concept Cards ────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 1rem;
+      margin: 1.25rem 0;
+    }
+
+    .card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem;
+    }
+
+    .card .card-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .card h5 {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+
+    .card p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    /* ── Tables ───────────────────────────────────── */
+    .table-wrap { overflow-x: auto; margin: 1.25rem 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 0.65rem 1rem;
+      background: #212836;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: #c0ccd8;
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    td strong { color: var(--text); }
+
+    /* ── Step List ────────────────────────────────── */
+    .steps { margin: 1.25rem 0; }
+
+    .step {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .step-num {
+      width: 1.75rem;
+      height: 1.75rem;
+      background: linear-gradient(135deg, #2b4b7e, #1e3a5f);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 800;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.15rem;
+    }
+
+    .step-body h5 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .step-body p {
+      margin: 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    /* ── Divider ──────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2rem 0;
+    }
+
+    /* ── Quote ────────────────────────────────────── */
+    blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 0.75rem 1.25rem;
+      margin: 1.25rem 0;
+      background: #13243a;
+      border-radius: 0 8px 8px 0;
+      color: #90cdf4;
+      font-size: 0.92rem;
+      font-style: italic;
+    }
+
+    /* ── Architecture Diagram ─────────────────────── */
+    .arch {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 1.25rem 0;
+      text-align: center;
+      font-family: "SF Mono", monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 2;
+    }
+
+    .arch .box {
+      display: inline-block;
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 0.3rem 0.8rem;
+      margin: 0.2rem;
+      background: var(--surface);
+    }
+
+    .arch .box-blue  { border-color: #2a4a6e; color: var(--accent); background: #13243a; }
+    .arch .box-green { border-color: #1a5c3a; color: var(--green); background: #0f2a1f; }
+    .arch .box-purple{ border-color: #4a2d8e; color: var(--purple); background: #1f1040; }
+    .arch .arrow { color: var(--dim); margin: 0 0.3rem; }
+
+    /* ── File Tree ────────────────────────────────── */
+    .filetree {
+      background: #131920;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      font-family: "SF Mono", monospace;
+      font-size: 0.83rem;
+      line-height: 1.9;
+      margin: 1.25rem 0;
+    }
+
+    .filetree .folder { color: var(--orange); }
+    .filetree .file   { color: var(--muted); }
+    .filetree .main   { color: var(--green); }
+    .filetree .note   { color: var(--dim); font-style: italic; }
+
+    /* ── Scrollbar ────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside id="sidebar">
+  <div class="brand">
+    <div class="pill">deeplearning.ai</div>
+    <h2>Agent Skills with<br>Anthropic (Claude)</h2>
+  </div>
+  <nav>
+    <div class="section-label">Lessons</div>
+    <a href="#lesson-1"><span class="num">1</span> Introduction <span class="dur">2m</span></a>
+    <a href="#lesson-3"><span class="num">3</span> Why Use Skills I <span class="dur">11m</span></a>
+    <a href="#lesson-4"><span class="num">4</span> Why Use Skills II <span class="dur">8m</span></a>
+    <a href="#lesson-5"><span class="num">5</span> Skills vs Tools, MCP &amp; Subagents <span class="dur">7m</span></a>
+    <a href="#lesson-6"><span class="num">6</span> Exploring Pre-Built Skills <span class="dur">18m</span></a>
+    <a href="#lesson-7"><span class="num">7</span> Creating Custom Skills <span class="dur">16m</span></a>
+    <a href="#lesson-8"><span class="num">8</span> Skills with Claude API <span class="dur">17m</span></a>
+    <a href="#lesson-9"><span class="num">9</span> Skills with Claude Code <span class="dur">24m</span></a>
+    <a href="#lesson-10"><span class="num">10</span> Skills with Agent SDK <span class="dur">20m</span></a>
+    <a href="#lesson-11"><span class="num">11</span> Conclusion <span class="dur">1m</span></a>
+    <div class="section-label">Reference</div>
+    <a href="#quick-ref">Quick Reference</a>
+  </nav>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main id="main">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="badge">deeplearning.ai &nbsp;·&nbsp; Anthropic</div>
+    <h1>Agent Skills with Anthropic (Claude)</h1>
+    <div class="meta">
+      <span>Instructor: Elie Schoppik</span>
+      <span>Duration: 2h 19min</span>
+      <span>Level: Beginner</span>
+      <span>10 videos + quiz</span>
+    </div>
+  </div>
+
+  <!-- ─────────────── LESSON 1 ─────────────── -->
+  <section class="lesson" id="lesson-1">
+    <div class="lesson-header">
+      <div class="lesson-num-badge">1</div>
+      <div class="lesson-header-text">
+        <h2>Introduction</h2>
+        <div class="tags">
+          <a class="tag tag-video" href="https://learn.deeplearning.ai/courses/agent-skills-with-anthropic/lesson/ldn5c3/introduction" target="_blank" rel="noopener">Watch Video</a>
+          <span class="tag tag-gray">2 min</span>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      This short intro sets up the core idea of the entire course. The instructor, Elie Schoppik (Head of Technical Education at Anthropic), explains what Skills are and why they matter in the age of AI agents.
+    </p>
+
+    <blockquote>
+      "Skills are folders of instructions that extend your agent's capabilities with specialized knowledge."
+    </blockquote>
+
+    <h3>What You'll Learn in This Course</h3>
+    <ul>
+      <li>What Skills are and why they exist</li>
+      <li>How to create reusable Skills using the open standard format</li>
+      <li>How to build custom Skills for code generation, code review, data analysis, and research</li>
+      <li>How to use Skills with Claude AI, the Claude API, Claude Code, and the Claude Agent SDK</li>
+      <li>How to combine Skills with MCP servers and Subagents for powerful agentic systems</li>
+    </ul>
+
+    <h3>The Core Idea</h3>
+    <p>
+      Every Skill contains a <code>SKILL.md</code> file — a Markdown file with instructions, plus supporting files like scripts, documentation, and assets. When an agent encounters a task that matches a skill's description, it automatically loads and uses that skill.
+    </p>
+    <p>
+      The format is an <strong>open standard</strong>. Skills you build for Claude also work on Gemini CLI, Codex, and other skills-compatible platforms.
+    </p>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <strong>Key mental model</strong>
+        Think of a Skill as a reusable "how-to guide" for your agent. Instead of explaining the same workflow every time, you package it once and the agent knows how to do it automatically.
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── LESSON 3 ─────────────── -->
+  <section class="lesson" id="lesson-3">
+    <div class="lesson-header">
+      <div class="lesson-num-badge">3</div>
+      <div class="lesson-header-text">
+        <h2>Why Use Skills — Part I</h2>
+        <div class="tags">
+          <a class="tag tag-video" href="https://learn.deeplearning.ai/courses/agent-skills-with-anthropic/lesson/bv2ekh/why-use-skills---part-i" target="_blank" rel="noopener">Watch Video</a>
+          <span class="tag tag-gray">11 min</span>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      This lesson demonstrates the problem Skills solve, using a real marketing campaign analysis workflow as a concrete example.
+    </p>
+
+    <h3>The Problem: Repeated Prompts</h3>
+    <p>
+      Without Skills, every time you want Claude to perform a complex task, you must paste the full instructions into the chat. For example, analyzing marketing campaigns requires explaining:
+    </p>
+    <ul>
+      <li>What data quality checks to perform</li>
+      <li>How to calculate ROI, cost per acquisition, net profit</li>
+      <li>The specific budget reallocation rules</li>
+      <li>Any business rules or benchmarks</li>
+    </ul>
+    <p>
+      This is wasteful — you're consuming the context window with instructions that never change, and you have to repeat it in every new conversation.
+    </p>
+
+    <blockquote>
+      "If you find yourself typing the same prompt across conversations, you should consider transforming that into a skill."
+    </blockquote>
+
+    <h3>The Solution: Package It as a Skill</h3>
+    <p>
+      A Skill packages that workflow into a folder you upload once. Claude automatically recognizes when to use it based on the skill description, and loads the instructions on demand.
+    </p>
+
+    <h3>Anatomy of a SKILL.md File</h3>
+    <p>Every Skill is built around a <code>SKILL.md</code> file. Here's the structure:</p>
+
+    <div class="filetree">
+      <span class="folder">analyzing-marketing-campaigns/</span><br>
+      &nbsp;&nbsp;<span class="main">├── SKILL.md</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># required — main instructions</span><br>
+      &nbsp;&nbsp;<span class="folder">└── references/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">├── benchmarks.md</span>&nbsp;&nbsp;<span class="note"># industry benchmarks</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">└── rules.md</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># reallocation rules</span>
+    </div>
+
+    <p>The <code>SKILL.md</code> file itself looks like this:</p>
+
+    <pre><span class="lang-label">markdown / SKILL.md</span><code><span class="key">---</span>
+<span class="key">name:</span> <span class="val">analyzing-marketing-campaigns</span>
+<span class="key">description:</span> <span class="val">Analyzes marketing campaign performance data.</span>
+<span class="val">            Use when asked to analyze campaigns, calculate ROI,</span>
+<span class="val">            or reallocate marketing budgets.</span>
+<span class="key">---</span>
+
+<span class="cm"># Analyzing Marketing Campaigns</span>
+
+<span class="cm">## Step 1: Data Quality & Funnel Analysis</span>
+- Check total record count and missing values
+- Flag anomalies in impressions, clicks, conversions
+- Compare click-through rate vs benchmark (2%)
+- Compare conversion rate vs benchmark (5%)
+
+<span class="cm">## Step 2: Efficiency Metrics</span>
+- Calculate Return on Ad Spend (ROAS = Revenue / Cost)
+- Calculate Cost Per Acquisition (CPA = Cost / Conversions)
+- Calculate Net Profit (Revenue - Cost)
+
+<span class="cm">## Step 3: Budget Reallocation</span>
+- Refer to references/rules.md for reallocation logic
+- Apply rules per channel
+- Output recommended budget by channel</code></pre>
+
+    <h3>YAML Frontmatter Rules</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Required</th><th>Rules</th></tr></thead>
+        <tbody>
+          <tr><td><code>name</code></td><td>Yes</td><td>Lowercase letters, numbers, hyphens. No spaces. No reserved words (Claude, Anthropic).</td></tr>
+          <tr><td><code>description</code></td><td>Yes</td><td>Explains what the skill does AND when to use it. Include keywords that trigger activation.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Naming Convention</h3>
+    <p>Follow the <strong>verb + ing</strong> pattern:</p>
+    <ul>
+      <li><code>analyzing-marketing-campaigns</code></li>
+      <li><code>generating-practice-questions</code></li>
+      <li><code>reviewing-cli-commands</code></li>
+      <li><code>creating-brand-presentations</code></li>
+    </ul>
+
+    <h3>How to Upload a Skill (Claude AI / Desktop)</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h5>Zip your skill folder</h5>
+          <p>Compress the entire skill folder (e.g., <code>analyzing-marketing-campaigns.zip</code>)</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h5>Go to Settings → Capabilities → Skills</h5>
+          <p>In Claude AI or Claude Desktop, navigate to the Skills section</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h5>Upload the ZIP</h5>
+          <p>Claude will parse the SKILL.md and make the skill available</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h5>Use it naturally</h5>
+          <p>Ask Claude to analyze your campaigns — it automatically loads the skill from context</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Portability</h3>
+    <p>
+      Skills are an <strong>open standard</strong>. Once you build a skill, it works across:
+    </p>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">🤖</div>
+        <h5>Claude AI / Desktop</h5>
+        <p>Upload via the UI in Settings</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">💻</div>
+        <h5>Claude Code</h5>
+        <p>Store in <code>.claude/skills/</code></p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚙️</div>
+        <h5>Claude API</h5>
+        <p>Upload via Files API</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌐</div>
+        <h5>Gemini CLI / Codex</h5>
+        <p>Same SKILL.md format</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── LESSON 4 ─────────────── -->
+  <section class="lesson" id="lesson-4">
+    <div class="lesson-header">
+      <div class="lesson-num-badge">4</div>
+      <div class="lesson-header-text">
+        <h2>Why Use Skills — Part II</h2>
+        <div class="tags">
+          <a class="tag tag-video" href="https://learn.deeplearning.ai/courses/agent-skills-with-anthropic/lesson/eg4sac/why-use-skills---part-ii" target="_blank" rel="noopener">Watch Video</a>
+          <span class="tag tag-gray">8 min</span>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      Part II digs deeper into <em>how</em> Skills work technically, focusing on context window efficiency and what makes them different from just pasting text into a prompt.
+    </p>
+
+    <h3>Skills Are More Than Text</h3>
+    <p>
+      Skills aren't just Markdown documents linking to other documents. They are <strong>functional components</strong> that can include:
+    </p>
+    <ul>
+      <li>Executable scripts (Python, Bash)</li>
+      <li>Referenced resources (PDFs, CSVs, images)</li>
+      <li>Assets (templates, logos, schemas)</li>
+    </ul>
+    <p>
+      When Claude runs a skill, it can actually execute code, read files, and produce structured outputs — not just follow text instructions.
+    </p>
+
+    <h3>Progressive Disclosure — Protecting the Context Window</h3>
+    <p>
+      One of the most important technical aspects of Skills is <strong>progressive disclosure</strong>. Here's how it works:
+    </p>
+
+    <div class="arch">
+      <div>
+        <span class="box box-blue">Agent starts</span>
+        <span class="arrow">→</span>
+        <span class="box">Only skill <strong>name + description</strong> in context</span>
+      </div>
+      <div style="margin:0.5rem 0; color: var(--dim);">↓ user request matches skill description ↓</div>
+      <div>
+        <span class="box box-green">SKILL.md loads</span>
+        <span class="arrow">→</span>
+        <span class="box">Full instructions now in context</span>
+      </div>
+      <div style="margin:0.5rem 0; color: var(--dim);">↓ task requires additional files ↓</div>
+      <div>
+        <span class="box box-purple">References / Scripts load</span>
+        <span class="arrow">→</span>
+        <span class="box">Only what's needed</span>
+      </div>
+    </div>
+
+    <p>
+      This is critical at scale. If you have 20 skills installed, you don't want all 20 sets of instructions consuming tokens. Only the relevant skill's details are loaded when needed.
+    </p>
+
+    <div class="callout callout-info">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-body">
+        <strong>Tool definitions are always in context; Skills are not</strong>
+        Tool definitions (like bash, filesystem) are always present in the context window. Skills, by contrast, use progressive disclosure — only the name/description stays resident unless the skill is invoked.
+      </div>
+    </div>
+
+    <h3>Best Use Cases for Skills</h3>
+    <p>
+      Skills shine in situations where Claude lacks <strong>company-specific or domain-specific knowledge</strong>:
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Use Case</th><th>Why a Skill Helps</th></tr></thead>
+        <tbody>
+          <tr><td>Brand guidelines</td><td>Claude doesn't know your company's fonts, colors, logo rules</td></tr>
+          <tr><td>Financial analysis workflows</td><td>Your firm has specific formulas, thresholds, report formats</td></tr>
+          <tr><td>Legal review processes</td><td>Jurisdiction-specific rules, internal approval checklists</td></tr>
+          <tr><td>Newsletter design</td><td>Layout conventions, tone of voice, section structure</td></tr>
+          <tr><td>Code review standards</td><td>Project-specific conventions, security rules, patterns</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The Philosophy: Simpler Agents + Composable Skills</h3>
+    <p>
+      The old approach was to build many specialized agents (a coding agent, a finance agent, a research agent). The new approach:
+    </p>
+    <blockquote>
+      "Rather than building domain-specific agents, use simpler agents with common infrastructure (bash, filesystem) enhanced through composable skills."
+    </blockquote>
+    <p>
+      One general-purpose agent + a library of skills = the functionality of many specialized agents, with far less complexity.
+    </p>
+  </section>
+
+  <!-- ─────────────── LESSON 5 ─────────────── -->
+  <section class="lesson" id="lesson-5">
+    <div class="lesson-header">
+      <div class="lesson-num-badge">5</div>
+      <div class="lesson-header-text">
+        <h2>Skills vs Tools, MCP, and Subagents</h2>
+        <div class="tags">
+          <a class="tag tag-video" href="https://learn.deeplearning.ai/courses/agent-skills-with-anthropic/lesson/9iovmn/skills-vs-tools%2C-mcp%2C-and-subagents" target="_blank" rel="noopener">Watch Video</a>
+          <span class="tag tag-gray">7 min</span>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      This lesson maps out the full landscape of components in a modern agentic system and clarifies when to use each one.
+    </p>
+
+    <h3>The Four Components</h3>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">🔧</div>
+        <h5>Tools</h5>
+        <p>Low-level capabilities: Bash, filesystem read/write, web search, API calls. Always in context.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📋</div>
+        <h5>Skills</h5>
+        <p>High-level knowledge: step-by-step workflows, domain expertise, reusable procedures. Loaded on demand.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔌</div>
+        <h5>MCP</h5>
+        <p>Model Context Protocol: connects agents to external systems (databases, Google Drive, Notion, Slack).</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🤖</div>
+        <h5>Subagents</h5>
+        <p>Specialized agents spawned by a main agent. Each has its own context, tools, and permissions.</p>
+      </div>
+    </div>
+
+    <h3>The Analogy</h3>
+    <blockquote>
+      "Think of tools as a hammer and a saw and some nails. Skills are higher-level knowledge — like knowing how to build a bookshelf."
+    </blockquote>
+    <p>
+      Tools give the agent physical capabilities. Skills give it the knowledge of what to build and how to build it well.
+    </p>
+
+    <h3>How They Differ</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Component</th><th>Lives In</th><th>Purpose</th><th>Use When</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Tools</strong></td>
+            <td>Always in context</td>
+            <td>Execute actions (run code, read files, call APIs)</td>
+            <td>Agent needs to do something</td>
+          </tr>
+          <tr>
+            <td><strong>Skills</strong></td>
+            <td>Loaded progressively</td>
+            <td>Provide procedural knowledge and workflows</td>
+            <td>Agent needs to know how to do something</td>
+          </tr>
+          <tr>
+            <td><strong>MCP</strong></td>
+            <td>External servers</td>
+            <td>Connect to external data and systems</td>
+            <td>Agent needs to access external resources</td>
+          </tr>
+          <tr>
+            <td><strong>Subagents</strong></td>
+            <td>Separate context windows</td>
+            <td>Parallel, isolated, specialized task execution</td>
+            <td>Task can be parallelized or needs isolation</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Real Example: Customer Insight Analyzer</h3>
+    <p>
+      The lesson walks through a "Customer Insight Analyzer" to show how all four components work together:
+    </p>
+
+    <div class="arch">
+      <div style="margin-bottom:1rem;">
+        <span class="box box-blue">Main Agent</span>
+        <span class="arrow">uses</span>
+        <span class="box box-green">MCP → CRM Database</span>
+      </div>
+      <div style="margin-bottom:0.5rem; color: var(--dim);">↓ spawns subagents ↓</div>
+      <div>
+        <span class="box box-purple">Subagent A<br><small>Interview Analysis</small></span>
+        <span style="margin:0 1.5rem;"></span>
+        <span class="box box-purple">Subagent B<br><small>Survey Analysis</small></span>
+      </div>
+      <div style="margin:0.75rem 0; color: var(--dim);">↓ both use ↓</div>
+      <div>
+        <span class="box box-green">Skill: categorizing-feedback</span>
+        <span style="margin:0 0.5rem;"></span>
+        <span class="box box-green">Skill: summarizing-findings</span>
+      </div>
+    </div>
+
+    <ul>
+      <li><strong>Main agent</strong> orchestrates everything and accesses the database via MCP</li>
+      <li><strong>Subagents</strong> run the analysis in parallel (faster, isolated contexts)</li>
+      <li><strong>Skills</strong> ensure each subagent follows the same predictable workflow</li>
+      <li><strong>Tools</strong> (Bash, WebSearch) provide execution capabilities to each agent</li>
+    </ul>
+
+    <h3>Decision Guide: When to Use What</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Situation</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td>Repeatable, predictable workflow</td><td>Skill</td></tr>
+          <tr><td>Full agentic logic with decisions</td><td>Subagent</td></tr>
+          <tr><td>Access to external data/services</td><td>MCP</td></tr>
+          <tr><td>Execute code, read files, call APIs</td><td>Tool</td></tr>
+          <tr><td>Parallel execution of independent tasks</td><td>Subagents</td></tr>
+          <tr><td>Context-window protection for many skills</td><td>Progressive Disclosure</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────── LESSON 6 ─────────────── -->
+  <section class="lesson" id="lesson-6">
+    <div class="lesson-header">
+      <div class="lesson-num-badge">6</div>
+      <div class="lesson-header-text">
+        <h2>Exploring Pre-Built Skills</h2>
+        <div class="tags">
+          <a class="tag tag-video" href="https://learn.deeplearning.ai/courses/agent-skills-with-anthropic/lesson/cniu9q/exploring-pre-built-skills" target="_blank" rel="noopener">Watch Video</a>
+          <span class="tag tag-gray">18 min</span>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      Before building your own skills, it's worth understanding what's already available. This lesson tours Anthropic's pre-built and example skills.
+    </p>
+
+    <h3>Built-In Document Skills (Always On)</h3>
+    <p>
+      These come with Claude AI and Claude Desktop and cannot be turned off:
+    </p>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">📊</div>
+        <h5>Excel Skill</h5>
+        <p>Create, edit, and analyze <code>.xlsx</code> files with formulas, charts, pivot tables</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📑</div>
+        <h5>PowerPoint Skill</h5>
+        <p>Create and edit <code>.pptx</code> presentations with design principles and layouts</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📝</div>
+        <h5>Word Skill</h5>
+        <p>Create and edit <code>.docx</code> documents with formatting and templates</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📄</div>
+        <h5>PDF Skill</h5>
+        <p>Read, extract, and process PDF files</p>
+      </div>
+    </div>
+
+    <h3>Example Skills (Toggle-able, GitHub)</h3>
+    <p>
+      Additional skills are available at <code>github.com/anthropics/skills</code> and can be enabled/disabled:
+    </p>
+    <ul>
+      <li>Most are <strong>off by default</strong></li>
+      <li>The <strong>skill-creator</strong> skill is on by default</li>
+      <li>Categories: Creative &amp; Design, Development &amp; Technical, Enterprise &amp; Communication, Document Skills</li>
+    </ul>
+
+    <h3>The Skill-Creator Skill</h3>
+    <p>
+      This is a meta-skill — it helps you build other skills. It automates the file/folder structure creation so you don't have to set it up manually.
+    </p>
+    <p>It contains three Python scripts:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Script</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>init_skill.py</code></td><td>Creates the skill folder + SKILL.md template with YAML frontmatter</td></tr>
+          <tr><td><code>package_skill.py</code></td><td>Zips the skill folder with the correct structure for upload</td></tr>
+          <tr><td><code>validate_skill.py</code></td><td>Verifies SKILL.md exists, YAML is valid, required fields present</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Installing Skills in Claude Code</h3>
+    <p>
+      Claude Code requires manual installation from the marketplace:
+    </p>
+    <pre><span class="lang-label">bash</span><code><span class="cm"># Add the Anthropic skills marketplace</span>
+/plugin marketplace add anthropics/skills
+
+<span class="cm"># Install the collections you want</span>
+/plugin install document-skills@anthropic-agent-skills
+/plugin install example-skills@anthropic-agent-skills
+
+<span class="cm"># Restart Claude Code, then verify</span>
+/skills</code></pre>
+
+    <h3>Demo: End-to-End Branded Presentation</h3>
+    <p>
+      The lesson demonstrates combining multiple skills + MCP to automate a full workflow:
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h5>Connect BigQuery via MCP</h5>
+          <p>Claude Desktop reads campaign data directly from BigQuery using a local MCP server configured in <code>claude_desktop_config.json</code></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h5>Apply Marketing Analysis Skill</h5>
+          <p>The custom skill analyzes the data — funnel metrics, ROI, budget reallocation</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h5>Apply Brand Guidelines Skill</h5>
+          <p>A custom skill loads company colors, logos, typography, and layout rules</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h5>Generate PowerPoint (Built-in Skill)</h5>
+          <p>The built-in PowerPoint skill creates a fully branded presentation with charts</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <strong>Skill-creator is a starting point, not a replacement for thought</strong>
+        "While the skill-creator is extremely effective at creating structure, we still have to be intentional about the prompt we provide and the data that goes in." Always review and refine auto-generated skills.
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── LESSON 7 ─────────────── -->
+  <section class="lesson" id="lesson-7">
+    <div class="lesson-header">
+      <div class="lesson-num-badge">7</div>
+      <div class="lesson-header-text">
+        <h2>Creating Custom Skills</h2>
+        <div class="tags">
+          <a class="tag tag-video" href="https://learn.deeplearning.ai/courses/agent-skills-with-anthropic/lesson/txwyf5/creating-custom-skills" target="_blank" rel="noopener">Watch Video</a>
+          <span class="tag tag-gray">16 min</span>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      This is the core technical lesson on how to write good skills from scratch. It covers structure, best practices, two real examples, and how to evaluate your skills.
+    </p>
+
+    <h3>Full Skill Directory Structure</h3>
+
+    <div class="filetree">
+      <span class="folder">your-skill-name/</span><br>
+      &nbsp;&nbsp;<span class="main">├── SKILL.md</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># required — YAML frontmatter + instructions</span><br>
+      &nbsp;&nbsp;<span class="folder">├── scripts/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># optional — executable code</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">├── step1.py</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">└── step2.py</span><br>
+      &nbsp;&nbsp;<span class="folder">├── references/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># optional — extra documentation</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">├── guidelines.md</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">└── examples.md</span><br>
+      &nbsp;&nbsp;<span class="folder">└── assets/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># optional — templates, images, data</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">├── template.xlsx</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">└── logo.png</span>
+    </div>
+
+    <h3>SKILL.md Best Practices</h3>
+
+    <h4>Frontmatter</h4>
+    <ul>
+      <li><strong>name:</strong> lowercase, hyphens, verb+ing format (e.g., <code>generating-practice-questions</code>)</li>
+      <li><strong>description:</strong> explain both <em>what</em> it does and <em>when</em> to use it — include trigger keywords</li>
+    </ul>
+
+    <h4>Body Content</h4>
+    <ul>
+      <li>Keep under <strong>500 lines</strong> total — reference external files for anything longer</li>
+      <li>Use <strong>forward slashes</strong> for all paths (not backslashes) for cross-platform compatibility</li>
+      <li>Write <strong>clear, sequential steps</strong> — number them explicitly</li>
+      <li>Define <strong>edge cases</strong> and explain when steps can be skipped</li>
+      <li>Balance specificity vs flexibility based on your use case</li>
+    </ul>
+
+    <h4>Freedom vs. Constraint</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Low Freedom (Specify Exactly)</th><th>High Freedom (Let Claude Decide)</th></tr></thead>
+        <tbody>
+          <tr><td>Script execution order</td><td>Color palette choices</td></tr>
+          <tr><td>File naming conventions</td><td>Writing style and tone</td></tr>
+          <tr><td>Output file structure</td><td>Layout and visual design</td></tr>
+          <tr><td>Required validation checks</td><td>Example selection</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Example 1: Generating Practice Questions</h3>
+    <p>
+      This skill generates educational questions from lecture notes, supporting multiple output formats.
+    </p>
+
+    <pre><span class="lang-label">markdown / SKILL.md</span><code><span class="key">---</span>
+<span class="key">name:</span> <span class="val">generating-practice-questions</span>
+<span class="key">description:</span> <span class="val">Generates practice questions from lecture notes or</span>
+<span class="val">            educational content. Use when creating study materials,</span>
+<span class="val">            quizzes, or exam prep content.</span>
+<span class="key">---</span>
+
+<span class="cm"># Generating Practice Questions</span>
+
+<span class="cm">## Required Input</span>
+- Lecture notes or educational content (text, PDF, or markdown)
+- Desired output format (Markdown, LaTeX, or PDF)
+- Difficulty level (beginner / intermediate / advanced)
+
+<span class="cm">## Question Progression</span>
+Generate questions in this order:
+1. True/False — test basic comprehension
+2. Multiple Choice — test understanding with distractors
+3. Short Answer — require explanation in 2-3 sentences
+4. Coding Problems — apply concepts programmatically
+5. Application — connect to real-world scenarios
+
+<span class="cm">## Output Formats</span>
+- Markdown: use assets/markdown_template.md
+- LaTeX: use assets/latex_template.tex (compile with pdflatex)
+- PDF: generate via LaTeX pipeline
+
+<span class="cm">## Edge Cases</span>
+- If content is under 500 words, skip coding and application sections
+- If no difficulty specified, default to intermediate</code></pre>
+
+    <div class="filetree">
+      <span class="folder">generating-practice-questions/</span><br>
+      &nbsp;&nbsp;<span class="main">├── SKILL.md</span><br>
+      &nbsp;&nbsp;<span class="folder">└── assets/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">├── markdown_template.md</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">└── latex_template.tex</span>
+    </div>
+
+    <h3>Example 2: Analyzing Time Series Data</h3>
+    <p>
+      This skill runs a deterministic sequence of Python scripts to diagnose CSV data before forecasting.
+    </p>
+
+    <pre><span class="lang-label">markdown / SKILL.md</span><code><span class="key">---</span>
+<span class="key">name:</span> <span class="val">analyzing-time-series-data</span>
+<span class="key">description:</span> <span class="val">Diagnoses time series CSV data characteristics before</span>
+<span class="val">            forecasting. Use when analyzing trends, seasonality,</span>
+<span class="val">            or preparing data for prediction models.</span>
+<span class="key">---</span>
+
+<span class="cm"># Analyzing Time Series Data</span>
+
+<span class="cm">## Dependencies</span>
+Required Python libraries: pandas, numpy, matplotlib, statsmodels, scipy
+
+<span class="cm">## Workflow (execute in order)</span>
+1. Run scripts/01_load_validate.py — check format, missing values, frequency
+2. Run scripts/02_visualize.py — plot raw series, rolling mean/std
+3. Run scripts/03_autocorrelation.py — ACF and PACF plots
+4. Run scripts/04_decompose.py — trend, seasonality, residuals
+5. Run scripts/05_summary.py — write diagnosis to output/summary.md
+
+<span class="cm">## Outputs</span>
+- output/summary.md — written diagnosis with recommendations
+- output/plots/ — all generated visualizations
+- Each script logs errors to output/errors.log
+
+<span class="cm">## Optional Steps</span>
+- If user requests stationarity test: run scripts/06_adf_test.py
+- If user requests forecast: proceed to forecasting skill after diagnosis</code></pre>
+
+    <h3>Testing Your Skills</h3>
+    <p>
+      Treat skills like software — unit test them:
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Test Type</th><th>What to Check</th></tr></thead>
+        <tbody>
+          <tr><td>Input handling</td><td>Does it work with various input formats? What happens with edge cases?</td></tr>
+          <tr><td>Workflow execution</td><td>Do all steps run in the right order? Are dependencies handled?</td></tr>
+          <tr><td>Output format</td><td>Does the output match the expected structure and file locations?</td></tr>
+          <tr><td>LaTeX compilation</td><td>Do LaTeX outputs actually compile to PDF without errors?</td></tr>
+          <tr><td>Human review</td><td>Gather feedback across multiple Claude model versions</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Evaluating with Skill-Creator</h3>
+    <p>
+      You can run the skill-creator tool against your skill to score it on best practices. The two example skills scored:
+    </p>
+    <ul>
+      <li><strong>generating-practice-questions:</strong> 9/10 (minor conciseness improvements suggested)</li>
+      <li><strong>analyzing-time-series-data:</strong> 10/10 (excellent on duplication, frontmatter quality, conciseness)</li>
+    </ul>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <strong>Scale tip</strong>
+        Systems can handle 100+ skills with clear naming and description patterns. The key is that descriptions must be unique and specific enough that Claude can reliably choose the right skill for each task.
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── LESSON 8 ─────────────── -->
+  <section class="lesson" id="lesson-8">
+    <div class="lesson-header">
+      <div class="lesson-num-badge">8</div>
+      <div class="lesson-header-text">
+        <h2>Skills with the Claude API</h2>
+        <div class="tags">
+          <a class="tag tag-video" href="https://learn.deeplearning.ai/courses/agent-skills-with-anthropic/lesson/3sq9za/skills-with-the-claude-api" target="_blank" rel="noopener">Watch Video</a>
+          <span class="tag tag-gray">17 min</span>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      When building applications with the Anthropic Messages API directly, skills don't auto-configure. This lesson shows how to wire everything up manually.
+    </p>
+
+    <div class="callout callout-danger">
+      <div class="callout-icon">🚨</div>
+      <div class="callout-body">
+        <strong>Critical difference</strong>
+        Skills you create in Claude AI and Claude Desktop are NOT shared with the Claude API or Claude Code. You must set up code execution and filesystem access manually.
+      </div>
+    </div>
+
+    <h3>Two Components You Must Add</h3>
+
+    <h4>1. Code Execution Tool</h4>
+    <p>
+      Provides a sandboxed container where Claude can run Bash commands, Python scripts, and manage files.
+    </p>
+    <ul>
+      <li>Pre-installed libraries available (Python, common packages)</li>
+      <li>No internet connection (can't <code>pip install</code> arbitrary packages)</li>
+      <li>RAM, disk, and CPU are constrained</li>
+      <li>Enabled via beta headers in the API request</li>
+    </ul>
+
+    <h4>2. Files API</h4>
+    <p>
+      Handles uploading and downloading files between your application and the sandboxed execution environment.
+    </p>
+
+    <h3>Full Workflow</h3>
+
+    <pre><span class="lang-label">python</span><code><span class="kw">import</span> anthropic
+
+client = anthropic.Anthropic()
+
+<span class="cm"># Step 1: Upload your skill folder via Files API</span>
+<span class="kw">def</span> <span class="fn">upload_skill</span>(skill_path: str) -> str:
+    <span class="kw">with</span> open(skill_path, <span class="st">"rb"</span>) <span class="kw">as</span> f:
+        response = client.beta.files.upload(
+            file=(skill_path, f, <span class="st">"text/markdown"</span>),
+        )
+    <span class="kw">return</span> response.id
+
+<span class="cm"># Step 2: Upload your input data file</span>
+<span class="kw">with</span> open(<span class="st">"lecture_notes.pdf"</span>, <span class="st">"rb"</span>) <span class="kw">as</span> f:
+    input_file = client.beta.files.upload(
+        file=(<span class="st">"lecture_notes.pdf"</span>, f, <span class="st">"application/pdf"</span>)
+    )
+
+skill_file_id = upload_skill(<span class="st">"generating-practice-questions/SKILL.md"</span>)
+
+<span class="cm"># Step 3: Send message to Claude with skill + code execution</span>
+response = client.beta.messages.create(
+    model=<span class="st">"claude-sonnet-4-6"</span>,
+    max_tokens=<span class="num">4096</span>,
+    betas=[<span class="st">"files-api-2025-04-14"</span>, <span class="st">"code-execution-2025-05-22"</span>],
+    tools=[{<span class="st">"type"</span>: <span class="st">"code_execution"</span>}],
+    container={
+        <span class="st">"type"</span>: <span class="st">"persistent"</span>,
+        <span class="st">"files"</span>: [skill_file_id, input_file.id]
+    },
+    messages=[{
+        <span class="st">"role"</span>: <span class="st">"user"</span>,
+        <span class="st">"content"</span>: <span class="st">"Generate practice questions from the lecture notes."</span>
+    }]
+)
+
+<span class="cm"># Step 4: Extract output file IDs from response and download</span>
+<span class="kw">for</span> block <span class="kw">in</span> response.content:
+    <span class="kw">if</span> hasattr(block, <span class="st">"file_id"</span>):
+        content = client.beta.files.download(block.file_id)
+        <span class="kw">with</span> open(<span class="st">"output_questions.md"</span>, <span class="st">"wb"</span>) <span class="kw">as</span> f:
+            f.write(content)
+
+<span class="cm"># Step 5: Clean up (optional)</span>
+client.beta.files.delete(skill_file_id)</code></pre>
+
+    <h3>What Happens Inside the Container</h3>
+    <p>
+      When Claude receives the request, it uses progressive disclosure — it reads the SKILL.md file first, then loads additional assets only when needed. Claude will:
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h5>Read SKILL.md</h5>
+          <p>Claude reads the instructions to understand the workflow</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h5>Execute code steps</h5>
+          <p>Runs Python/Bash scripts inside the sandbox per the skill instructions</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h5>Load assets as needed</h5>
+          <p>Reads templates, references only when the step requires them</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h5>Write output files</h5>
+          <p>Produces result files with IDs you can download via the Files API</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Skills Demonstrated in This Lesson</h3>
+    <ul>
+      <li><strong>generating-practice-questions</strong> — from lecture notes (LaTeX/PDF output)</li>
+      <li><strong>analyzing-time-series-data</strong> — from CSV files with visualizations</li>
+      <li>Both combined with the built-in <code>docx</code> skill to also produce Word document output</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <strong>No internet in the sandbox</strong>
+        The container cannot make HTTP requests or install packages at runtime. Make sure all required libraries are available in the pre-installed environment or bundle them with your skill.
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── LESSON 9 ─────────────── -->
+  <section class="lesson" id="lesson-9">
+    <div class="lesson-header">
+      <div class="lesson-num-badge">9</div>
+      <div class="lesson-header-text">
+        <h2>Skills with Claude Code</h2>
+        <div class="tags">
+          <a class="tag tag-video" href="https://learn.deeplearning.ai/courses/agent-skills-with-anthropic/lesson/cniu9b/skills-with-claude-code" target="_blank" rel="noopener">Watch Video</a>
+          <span class="tag tag-gray">24 min</span>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      This lesson applies Skills to a real software development workflow inside Claude Code, showing how to enforce consistent patterns across code generation, testing, and review.
+    </p>
+
+    <h3>Project: CLI Task Manager (Python + Typer)</h3>
+    <p>
+      The demo project is a command-line task manager built with Python and the Typer framework. Its architecture:
+    </p>
+
+    <div class="filetree">
+      <span class="folder">task-manager/</span><br>
+      &nbsp;&nbsp;<span class="file">├── commands/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># each CLI command is a separate file</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">├── add.py</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">├── list.py</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">└── __init__.py</span>&nbsp;<span class="note"># command registration</span><br>
+      &nbsp;&nbsp;<span class="file">├── models.py</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># data models</span><br>
+      &nbsp;&nbsp;<span class="file">├── storage.py</span>&nbsp;&nbsp;&nbsp;<span class="note"># persistence logic</span><br>
+      &nbsp;&nbsp;<span class="file">├── display.py</span>&nbsp;&nbsp;&nbsp;<span class="note"># terminal output formatting</span><br>
+      &nbsp;&nbsp;<span class="main">├── CLAUDE.md</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># project context for Claude</span><br>
+      &nbsp;&nbsp;<span class="folder">└── .claude/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">└── skills/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="main">├── adding-cli-commands/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="main">├── generating-cli-tests/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="main">└── reviewing-cli-commands/</span>
+    </div>
+
+    <h3>CLAUDE.md — Project Context File</h3>
+    <p>
+      <code>CLAUDE.md</code> lives in the project root and maintains context across Claude Code conversations. It documents:
+    </p>
+    <ul>
+      <li>Technology stack (Python 3.11, Typer, pytest)</li>
+      <li>Architecture patterns (one file per command, registration in <code>__init__.py</code>)</li>
+      <li>Coding conventions (type annotations required, use Rich for display)</li>
+      <li>Key file locations and what they do</li>
+    </ul>
+    <p>
+      Without CLAUDE.md, Claude would need to re-explore the codebase in every conversation.
+    </p>
+
+    <h3>The Three Skills</h3>
+
+    <h4>Skill 1: adding-cli-commands</h4>
+    <pre><span class="lang-label">markdown / SKILL.md</span><code><span class="key">---</span>
+<span class="key">name:</span> <span class="val">adding-cli-commands</span>
+<span class="key">description:</span> <span class="val">Creates new CLI commands following project conventions.</span>
+<span class="val">            Use when adding new commands to the task manager.</span>
+<span class="key">---</span>
+
+<span class="cm"># Adding CLI Commands</span>
+
+<span class="cm">## Steps</span>
+1. Create commands/{command_name}.py with:
+   - Typer app function with proper type annotations
+   - Docstring explaining the command
+   - Import from models.py and storage.py
+   - Use display.py for all terminal output
+2. Register in commands/__init__.py
+3. Add entry to CLAUDE.md command list
+
+<span class="cm">## Required Patterns</span>
+- Use `typer.Option` for optional flags with `--flag-name` format
+- Use `typer.Argument` for required positional args
+- Always validate input before storage operations
+- Return appropriate exit codes</code></pre>
+
+    <h4>Skill 2: generating-cli-tests</h4>
+    <pre><span class="lang-label">markdown / SKILL.md</span><code><span class="key">---</span>
+<span class="key">name:</span> <span class="val">generating-cli-tests</span>
+<span class="key">description:</span> <span class="val">Generates pytest tests for CLI commands. Use when</span>
+<span class="val">            writing tests for any task manager command.</span>
+<span class="key">---</span>
+
+<span class="cm"># Generating CLI Tests</span>
+
+<span class="cm">## Test Structure</span>
+1. Create tests/test_{command_name}.py
+2. Use pytest fixtures from conftest.py:
+   - `runner` — CliRunner instance
+   - `tmp_storage` — isolated storage for tests
+3. Test categories (in order):
+   - Happy path: normal expected input
+   - Edge cases: empty input, boundary values
+   - Error cases: invalid input, missing required args
+   - Flag combinations: multiple options together
+
+<span class="cm">## Requirements</span>
+- Each test function has a single assertion focus
+- Use descriptive test names: test_add_creates_task_with_title()
+- Mock external I/O (file writes) in unit tests
+- Integration tests use tmp_storage fixture</code></pre>
+
+    <h4>Skill 3: reviewing-cli-commands</h4>
+    <pre><span class="lang-label">markdown / SKILL.md</span><code><span class="key">---</span>
+<span class="key">name:</span> <span class="val">reviewing-cli-commands</span>
+<span class="key">description:</span> <span class="val">Reviews CLI command implementations for quality,</span>
+<span class="val">            security, and best practices. Use to validate any</span>
+<span class="val">            new or modified command before merging.</span>
+<span class="key">---</span>
+
+<span class="cm"># Reviewing CLI Commands</span>
+
+<span class="cm">## Checklist</span>
+1. Type annotations on all function params and return types
+2. Input validation before any storage/IO operations
+3. Error messages are user-friendly (not stack traces)
+4. No hardcoded file paths (use config/constants)
+5. Follows naming conventions from CLAUDE.md
+6. Registered correctly in commands/__init__.py
+7. No security issues (no eval, no shell injection via user input)</code></pre>
+
+    <h3>Using Subagents in Claude Code</h3>
+    <p>
+      Rather than reviewing and testing in the main context, the lesson introduces specialized subagents:
+    </p>
+
+    <pre><span class="lang-label">python (Claude Code agent definition)</span><code><span class="cm"># code-reviewer subagent</span>
+<span class="cm"># Limited to read-only tools — can only inspect, not modify</span>
+code_reviewer = Agent(
+    description=<span class="st">"Reviews code quality, security, and convention compliance"</span>,
+    tools=[<span class="st">"Bash"</span>, <span class="st">"Glob"</span>, <span class="st">"Grep"</span>, <span class="st">"Read"</span>],
+    skills=[<span class="st">"reviewing-cli-commands"</span>]
+)
+
+<span class="cm"># test-generator-runner subagent</span>
+<span class="cm"># Has write access to create test files and run them</span>
+test_agent = Agent(
+    description=<span class="st">"Generates pytest tests and executes them"</span>,
+    tools=[<span class="st">"Bash"</span>, <span class="st">"Glob"</span>, <span class="st">"Grep"</span>, <span class="st">"Read"</span>, <span class="st">"Edit"</span>, <span class="st">"Write"</span>],
+    skills=[<span class="st">"generating-cli-tests"</span>]
+)</code></pre>
+
+    <div class="callout callout-danger">
+      <div class="callout-icon">🚨</div>
+      <div class="callout-body">
+        <strong>Subagents do NOT inherit skills</strong>
+        Skills are not passed down from parent to subagent automatically. You must explicitly list the skills each subagent needs. If you forget, the subagent won't follow your conventions.
+      </div>
+    </div>
+
+    <h3>Example Workflow: Adding the "edit" Command</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h5>Generate the command</h5>
+          <p>Main agent uses the <code>adding-cli-commands</code> skill to create <code>commands/edit.py</code> with all required patterns</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h5>Dispatch code-reviewer subagent</h5>
+          <p>Subagent checks the new file against the review checklist without touching the main context</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h5>Dispatch test-generator-runner subagent</h5>
+          <p>Subagent writes tests per the testing skill, runs them with pytest, reports results</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h5>Main agent reviews results</h5>
+          <p>If both subagents pass, the feature is done. If not, iterate.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── LESSON 10 ─────────────── -->
+  <section class="lesson" id="lesson-10">
+    <div class="lesson-header">
+      <div class="lesson-num-badge">10</div>
+      <div class="lesson-header-text">
+        <h2>Skills with the Claude Agent SDK</h2>
+        <div class="tags">
+          <a class="tag tag-video" href="https://learn.deeplearning.ai/courses/agent-skills-with-anthropic/lesson/rmykgh/skills-with-the-claude-agent-sdk" target="_blank" rel="noopener">Watch Video</a>
+          <span class="tag tag-gray">20 min</span>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      The final major lesson builds a complete research agent using the Claude Agent SDK — a programmatic way to build agentic applications using the same internal architecture as Claude Code.
+    </p>
+
+    <blockquote>
+      "The Claude Agent SDK is a programmatic way of building your own agentic applications that use the same internal harness that Claude Code does."
+    </blockquote>
+
+    <h3>Project Setup</h3>
+    <pre><span class="lang-label">bash</span><code><span class="cm"># Initialize project</span>
+uv init research-agent
+cd research-agent
+
+<span class="cm"># Install dependencies</span>
+uv add claude-agent-sdk python-dotenv
+
+<span class="cm"># Project structure</span>
+research-agent/
+├── agent.py             <span class="cm"># main agent definition</span>
+├── .env                 <span class="cm"># ANTHROPIC_API_KEY=...</span>
+└── .claude/
+    └── skills/
+        └── learning-a-tool/
+            └── SKILL.md</code></pre>
+
+    <h3>The Research Agent Architecture</h3>
+
+    <div class="arch">
+      <div style="margin-bottom:1.25rem">
+        <span class="box box-blue">Main Orchestrator Agent</span>
+        <br><small style="color:var(--dim)">uses: learning-a-tool skill + Write + Bash</small>
+      </div>
+      <div style="color:var(--dim); margin-bottom:0.75rem">↓ spawns 3 subagents in parallel ↓</div>
+      <div style="display:flex; justify-content:center; gap:1rem; flex-wrap:wrap">
+        <div style="text-align:center">
+          <span class="box box-purple">Documentation<br>Researcher</span>
+          <br><small style="color:var(--dim)">WebSearch + WebFetch</small>
+        </div>
+        <div style="text-align:center">
+          <span class="box box-purple">Repository<br>Analyzer</span>
+          <br><small style="color:var(--dim)">Bash + WebSearch + Read</small>
+        </div>
+        <div style="text-align:center">
+          <span class="box box-purple">Web<br>Researcher</span>
+          <br><small style="color:var(--dim)">WebSearch + WebFetch</small>
+        </div>
+      </div>
+      <div style="color:var(--dim); margin: 0.75rem 0">↓ results flow back to main agent ↓</div>
+      <div>
+        <span class="box box-green">MCP: Notion Server</span>
+        <span class="arrow">→</span>
+        <span class="box">Published Learning Guide</span>
+      </div>
+    </div>
+
+    <h3>The learning-a-tool Skill</h3>
+    <pre><span class="lang-label">markdown / SKILL.md</span><code><span class="key">---</span>
+<span class="key">name:</span> <span class="val">learning-a-tool</span>
+<span class="key">description:</span> <span class="val">Creates comprehensive learning guides for open-source</span>
+<span class="val">            tools and libraries. Use when asked to learn or</span>
+<span class="val">            research a new tool, library, or framework.</span>
+<span class="key">---</span>
+
+<span class="cm"># Learning a Tool</span>
+
+<span class="cm">## Research Phase</span>
+Dispatch three specialized subagents in parallel:
+1. **Documentation Researcher** — official docs, API reference, quickstart guides
+2. **Repository Analyzer** — GitHub README, examples/, issues, recent commits
+3. **Web Researcher** — blog posts, tutorials, Stack Overflow, Reddit discussions
+
+<span class="cm">## Learning Path Structure</span>
+Organize output into progressive difficulty levels:
+
+**Level 0: Overview & Motivation**
+- What problem does this tool solve?
+- When should/shouldn't you use it?
+- How does it compare to alternatives?
+
+**Level 1: Installation & Setup**
+- Installation commands
+- Configuration required
+- Hello world example
+
+**Level 2: Core Concepts**
+- Key abstractions and their relationships
+- Mental model for how it works
+
+**Level 3: Practical Patterns**
+- Common use cases with code examples
+- Best practices and gotchas
+
+**Level 4: Advanced Topics**
+- Performance optimization
+- Edge cases
+- Production considerations
+
+<span class="cm">## Output Format</span>
+Generate a folder structure:
+  output/{tool-name}/
+    README.md        — overview and navigation
+    resources.md     — all links found
+    learning-path/
+      00-overview.md
+      01-setup.md
+      02-core-concepts.md
+      03-patterns.md
+      04-advanced.md
+    examples/
+      hello-world.{ext}
+      common-patterns.{ext}</code></pre>
+
+    <h3>Full Agent Implementation</h3>
+    <pre><span class="lang-label">python / agent.py</span><code><span class="kw">import</span> asyncio
+<span class="kw">from</span> claude_agent_sdk <span class="kw">import</span> Agent, AgentSettings
+<span class="kw">from</span> dotenv <span class="kw">import</span> load_dotenv
+
+load_dotenv()
+
+<span class="cm"># Subagent: searches official documentation</span>
+doc_researcher = Agent(
+    description=<span class="st">"Researches official documentation, API references, and quickstart guides"</span>,
+    prompt=<span class="st">"Search for official documentation and guides for the tool provided."</span>,
+    tools=[<span class="st">"WebSearch"</span>, <span class="st">"WebFetch"</span>],
+)
+
+<span class="cm"># Subagent: analyzes the GitHub repository</span>
+repo_analyzer = Agent(
+    description=<span class="st">"Analyzes GitHub repositories for examples, patterns, and issues"</span>,
+    prompt=<span class="st">"Find and analyze the GitHub repository for the tool provided."</span>,
+    tools=[<span class="st">"Bash"</span>, <span class="st">"WebSearch"</span>, <span class="st">"WebFetch"</span>, <span class="st">"Read"</span>],
+)
+
+<span class="cm"># Subagent: gathers community knowledge</span>
+web_researcher = Agent(
+    description=<span class="st">"Gathers community knowledge: tutorials, blog posts, Stack Overflow"</span>,
+    prompt=<span class="st">"Find community resources, tutorials, and discussions about the tool."</span>,
+    tools=[<span class="st">"WebSearch"</span>, <span class="st">"WebFetch"</span>],
+)
+
+<span class="cm"># Main orchestrator</span>
+main_agent = Agent(
+    description=<span class="st">"Research orchestrator that creates comprehensive learning guides"</span>,
+    tools=[<span class="st">"Write"</span>, <span class="st">"Bash"</span>, <span class="st">"WebSearch"</span>, <span class="st">"WebFetch"</span>, <span class="st">"Skill"</span>],
+    subagents=[doc_researcher, repo_analyzer, web_researcher],
+    settings=AgentSettings(
+        setting_sources=[<span class="st">"user"</span>, <span class="st">"project"</span>]  <span class="cm"># loads .claude/skills/</span>
+    ),
+    mcp_servers=[{
+        <span class="st">"type"</span>: <span class="st">"notion"</span>,
+        <span class="st">"auth_token"</span>: <span class="st">"..."</span>
+    }]
+)
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    result = <span class="kw">await</span> main_agent.run(
+        <span class="st">"Create a comprehensive learning guide for MinerU (a PDF extraction library)"</span>
+    )
+    print(result)
+
+asyncio.run(main())</code></pre>
+
+    <h3>What the Agent Produces (MinerU Demo)</h3>
+    <p>
+      The demo creates a full learning guide for <strong>MinerU</strong> (a PDF extraction library):
+    </p>
+    <ul>
+      <li>Parallel subagent execution: docs + repo + community research happens simultaneously</li>
+      <li>Structured folder output with progressive difficulty levels (00 through 04)</li>
+      <li>Code examples: hello-world → common patterns → production usage</li>
+      <li>Resource compilation: all relevant links, docs, tutorials</li>
+      <li>Written to <strong>Notion</strong> via MCP for team sharing</li>
+    </ul>
+
+    <h3>Tool Configuration Per Subagent</h3>
+    <div class="callout callout-danger">
+      <div class="callout-icon">🚨</div>
+      <div class="callout-body">
+        <strong>Always be explicit about tools and skills for subagents</strong>
+        Every subagent needs its own explicit tool list. Subagents don't inherit anything from the parent — not tools, not skills, not MCP connections.
+      </div>
+    </div>
+
+    <h3>Security Considerations for Production</h3>
+    <p>
+      The instructor flags important limitations of the current implementation:
+    </p>
+    <ul>
+      <li>No user confirmation before executing <code>Write</code> or <code>Bash</code> commands</li>
+      <li>No interrupt mechanism (unlike Claude Code's UI)</li>
+      <li>No permission-based tool execution framework</li>
+    </ul>
+    <p>
+      For production systems, you need to add confirmation prompts before destructive operations.
+    </p>
+  </section>
+
+  <!-- ─────────────── LESSON 11 ─────────────── -->
+  <section class="lesson" id="lesson-11">
+    <div class="lesson-header">
+      <div class="lesson-num-badge">11</div>
+      <div class="lesson-header-text">
+        <h2>Conclusion</h2>
+        <div class="tags">
+          <a class="tag tag-video" href="https://learn.deeplearning.ai/courses/agent-skills-with-anthropic/lesson/dea3n4/conclusion" target="_blank" rel="noopener">Watch Video</a>
+          <span class="tag tag-gray">1 min</span>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      The course wraps up by summarizing the layered architecture you've learned:
+    </p>
+    <ul>
+      <li><strong>Skills</strong> are reusable, portable, and open-standard — build once, use everywhere</li>
+      <li><strong>MCP</strong> connects agents to the external world</li>
+      <li><strong>Subagents</strong> enable parallel, specialized, isolated execution</li>
+      <li>These three components compose together to build powerful agentic systems</li>
+    </ul>
+    <p>
+      The key insight from the whole course: you don't need dozens of specialized agents. A general-purpose agent with well-designed composable skills, the right tools, and MCP access can handle complex real-world workflows reliably and predictably.
+    </p>
+  </section>
+
+  <!-- ─────────────── QUICK REFERENCE ─────────────── -->
+  <section class="lesson" id="quick-ref">
+    <div class="lesson-header">
+      <div class="lesson-num-badge" style="background: linear-gradient(135deg, #2a3d1f, #1a3a10); color: var(--green);">★</div>
+      <div class="lesson-header-text">
+        <h2>Quick Reference</h2>
+        <div class="tags">
+          <span class="tag tag-green">Cheatsheet</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>Minimum Viable Skill</h3>
+    <pre><span class="lang-label">markdown / SKILL.md</span><code><span class="key">---</span>
+<span class="key">name:</span> <span class="val">verb-ing-noun</span>
+<span class="key">description:</span> <span class="val">What it does and when to use it. Include keywords.</span>
+<span class="key">---</span>
+
+# Verb-ing Noun
+
+## Steps
+1. First step
+2. Second step
+3. Third step</code></pre>
+
+    <h3>Where Skills Live Per Platform</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Platform</th><th>Location</th><th>How to Install</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Claude AI / Desktop</strong></td><td>Settings → Capabilities → Skills</td><td>Upload ZIP file</td></tr>
+          <tr><td><strong>Claude Code</strong></td><td><code>.claude/skills/</code> (project) or user-level</td><td><code>/plugin install</code> or manual folder</td></tr>
+          <tr><td><strong>Claude API</strong></td><td>Files API → container parameter</td><td>Programmatic upload</td></tr>
+          <tr><td><strong>Agent SDK</strong></td><td><code>.claude/skills/</code></td><td>Set <code>setting_sources</code> in AgentSettings</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Architecture Decision Guide</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>I need to…</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td>Reuse a workflow across conversations</td><td>Skill</td></tr>
+          <tr><td>Access a database or external service</td><td>MCP server</td></tr>
+          <tr><td>Run tasks in parallel</td><td>Subagents</td></tr>
+          <tr><td>Execute code or read files</td><td>Tools (Bash, Write, Read)</td></tr>
+          <tr><td>Protect the context window at scale</td><td>Skills (progressive disclosure)</td></tr>
+          <tr><td>Enforce coding conventions in a project</td><td>Skills in <code>.claude/skills/</code></td></tr>
+          <tr><td>Build a custom agentic application</td><td>Claude Agent SDK</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Skill Writing Checklist</h3>
+    <ul>
+      <li>YAML frontmatter with <code>name</code> and <code>description</code></li>
+      <li>Name follows <code>verb-ing-noun</code> pattern, lowercase, hyphens</li>
+      <li>Description explains both what AND when</li>
+      <li>Under 500 lines (use references/ for overflow)</li>
+      <li>Forward slashes for all paths</li>
+      <li>Sequential numbered steps</li>
+      <li>Edge cases documented</li>
+      <li>Scripts in <code>scripts/</code>, docs in <code>references/</code>, files in <code>assets/</code></li>
+      <li>Tested like software (happy path, edge cases, output format)</li>
+    </ul>
+
+    <h3>Key Gotchas</h3>
+    <div class="callout callout-danger">
+      <div class="callout-icon">🚨</div>
+      <div class="callout-body">
+        <strong>Subagents don't inherit anything from the parent</strong>
+        Always explicitly declare tools, skills, and MCP servers for each subagent.
+      </div>
+    </div>
+    <div class="callout callout-danger">
+      <div class="callout-icon">🚨</div>
+      <div class="callout-body">
+        <strong>Claude AI skills ≠ API skills</strong>
+        Skills uploaded to Claude AI are not available in the Messages API. You must upload them programmatically via the Files API.
+      </div>
+    </div>
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <strong>API sandbox has no internet</strong>
+        The code execution container cannot install packages or make HTTP requests. Pre-bundle dependencies.
+      </div>
+    </div>
+    <div class="callout callout-tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <strong>Skills are an open standard</strong>
+        The same SKILL.md format works on Claude, Gemini CLI, Codex, and any other skills-compatible platform.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Highlight active sidebar link on scroll
+  const links = document.querySelectorAll('#sidebar nav a');
+  const sections = document.querySelectorAll('.lesson');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`#sidebar nav a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.2 });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

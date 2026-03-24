@@ -1,0 +1,14 @@
+{
+  "name": "skill-agent-demo",
+  "version": "1.0.0",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "server": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "dotenv": "^17.3.1",
+    "yaml": "^2.3.0"
+  }
+}
