@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projects</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #f7fafc;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      color: #718096;
+      font-size: 0.95rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 700px;
+    }
+
+    .card {
+      background: #1a202c;
+      border: 1px solid #2d3748;
+      border-radius: 14px;
+      padding: 1.75rem;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s, transform 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .card:hover {
+      border-color: #4299e1;
+      transform: translateY(-2px);
+    }
+
+    .card-icon {
+      font-size: 2rem;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #f7fafc;
+    }
+
+    .card p {
+      font-size: 0.875rem;
+      color: #718096;
+      line-height: 1.6;
+      flex: 1;
+    }
+
+    .card .arrow {
+      color: #4299e1;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 0.25rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      color: #4a5568;
+      font-size: 0.78rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Projects</h1>
+    <p>Select a project to open</p>
+  </div>
+
+  <div class="grid">
+
+    <a class="card" href="/course">
+      <div class="card-icon">📚</div>
+      <h2>Agent Skills with Anthropic</h2>
+      <p>Full course notes for the deeplearning.ai course on building AI agents with Claude Skills, MCP, and Subagents.</p>
+      <div class="arrow">Open course notes →</div>
+    </a>
+
+    <a class="card" href="/btc">
+      <div class="card-icon">📈</div>
+      <h2>BTC Greeks Chart</h2>
+      <p>Live Bitcoin options Greeks chart — IV, Delta, Gamma and more, pulled from Deribit and Bybit in real time.</p>
+      <div class="arrow">Open chart →</div>
+    </a>
+
+  </div>
+
+  <footer>whale-app-6umlu.ondigitalocean.app</footer>
+
+</body>
+</html>

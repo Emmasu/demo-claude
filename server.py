@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Combined server: serves course-notes at / and btc-greeks at /btc"""
+"""Combined server: landing page at /, course notes at /course, btc-greeks at /btc"""
 
 import http.server
 import urllib.request
@@ -8,6 +8,7 @@ import os
 PORT = int(os.environ.get("PORT", 8080))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+INDEX_HTML  = os.path.join(BASE_DIR, "index.html")
 COURSE_HTML = os.path.join(BASE_DIR, "6-lesson", "index.html")
 BTC_HTML    = os.path.join(BASE_DIR, "4-option", "index.html")
 
@@ -31,8 +32,11 @@ class CombinedHandler(http.server.BaseHTTPRequestHandler):
         elif self.path in ("/btc", "/btc/"):
             self._serve_file(BTC_HTML)
 
-        else:
+        elif self.path in ("/course", "/course/"):
             self._serve_file(COURSE_HTML)
+
+        else:
+            self._serve_file(INDEX_HTML)
 
     # ── Proxy POST (Convex) ───────────────────────────────────────────────────
 
@@ -110,6 +114,7 @@ class CombinedHandler(http.server.BaseHTTPRequestHandler):
 
 
 print(f"Serving on port {PORT}")
-print(f"  /     → {COURSE_HTML}")
-print(f"  /btc  → {BTC_HTML}")
+print(f"  /        → {INDEX_HTML}")
+print(f"  /course  → {COURSE_HTML}")
+print(f"  /btc     → {BTC_HTML}")
 http.server.HTTPServer(("", PORT), CombinedHandler).serve_forever()
