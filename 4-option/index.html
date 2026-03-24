@@ -4365,6 +4365,10 @@ async function fetchAndMergeMnt() {
       if (isMin) {
         mergeInto(MNT_MIN_TICKS,  MNT_MIN_CLOSE,  kline.ticks, kline.close);
         convexCall('mutation', 'candles:append', { name: 'mnt_min',  newTicks: kline.ticks, newCloses: kline.close }).catch(()=>{});
+        // Backfill if less than 7D available
+        if (MNT_MIN_TICKS.length && (Date.now() - MNT_MIN_TICKS[0]) < 6 * 24 * 3600 * 1000) {
+          backfillMntMin(7).catch(()=>{});
+        }
       } else {
         mergeInto(MNT_HOUR_TICKS, MNT_HOUR_CLOSE, kline.ticks, kline.close);
         convexCall('mutation', 'candles:append', { name: 'mnt_hour', newTicks: kline.ticks, newCloses: kline.close }).catch(()=>{});
