@@ -4,12 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Projects</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #060810;
+      font-family: "Inter", -apple-system, sans-serif;
+      background: #07090f;
       color: #e2e8f0;
       min-height: 100vh;
       display: flex;
@@ -17,35 +19,62 @@
       align-items: center;
       justify-content: center;
       padding: 2rem;
+    }
+
+    /* ── Animated mesh background ── */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
       overflow: hidden;
     }
 
-    /* ── Ambient glow background ── */
-    body::before {
-      content: "";
-      position: fixed;
-      top: -30%;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 800px;
-      height: 500px;
-      background: radial-gradient(ellipse, rgba(56, 100, 220, 0.18) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
+    .bg-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.55;
+      animation: drift 12s ease-in-out infinite alternate;
     }
 
-    body::after {
-      content: "";
-      position: fixed;
-      bottom: -20%;
-      left: 20%;
-      width: 500px;
-      height: 400px;
-      background: radial-gradient(ellipse, rgba(120, 40, 200, 0.1) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
+    .blob-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, #1a3a8f 0%, transparent 70%);
+      top: -200px; left: -100px;
+      animation-delay: 0s;
     }
 
+    .blob-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #5b21b6 0%, transparent 70%);
+      bottom: -150px; right: -100px;
+      animation-delay: -4s;
+    }
+
+    .blob-3 {
+      width: 350px; height: 350px;
+      background: radial-gradient(circle, #0e4f6e 0%, transparent 70%);
+      top: 40%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation-delay: -8s;
+    }
+
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(30px, 20px) scale(1.08); }
+    }
+
+    /* Grid noise overlay */
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ── Main content ── */
     .wrap {
       position: relative;
       z-index: 1;
@@ -53,7 +82,13 @@
       flex-direction: column;
       align-items: center;
       width: 100%;
-      max-width: 680px;
+      max-width: 720px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     /* ── Header ── */
@@ -62,215 +97,270 @@
       margin-bottom: 3.5rem;
     }
 
-    .header .eyebrow {
+    .eyebrow {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      background: rgba(99, 179, 237, 0.08);
-      border: 1px solid rgba(99, 179, 237, 0.2);
-      color: #63b3ed;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #94a3b8;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      padding: 0.3rem 0.9rem;
+      padding: 0.35rem 1rem;
       border-radius: 999px;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .eyebrow-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #22d3ee;
+      box-shadow: 0 0 8px #22d3ee;
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
     }
 
     .header h1 {
-      font-size: 2.75rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1.15;
-      background: linear-gradient(135deg, #f7fafc 30%, #90cdf4);
+      font-size: 3.25rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+
+    .header h1 .line-1 {
+      display: block;
+      color: #f1f5f9;
+    }
+
+    .header h1 .line-2 {
+      display: block;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 0.75rem;
     }
 
     .header p {
-      color: #4a6080;
+      color: #475569;
       font-size: 1rem;
+      font-weight: 400;
     }
 
     /* ── Cards ── */
     .grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1rem;
+      gap: 1.25rem;
       width: 100%;
     }
 
-    @media (max-width: 520px) {
+    @media (max-width: 540px) {
       .grid { grid-template-columns: 1fr; }
-      .header h1 { font-size: 2rem; }
+      .header h1 { font-size: 2.25rem; }
     }
 
     .card {
       position: relative;
-      background: rgba(20, 28, 45, 0.8);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 1.75rem;
       text-decoration: none;
       color: inherit;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.1rem;
       overflow: hidden;
-      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-      backdrop-filter: blur(12px);
+      transition: transform 0.25s cubic-bezier(.22,.68,0,1.2), box-shadow 0.25s;
+      animation: fadeUp 0.6s ease both;
     }
 
-    .card::before {
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+
+    /* Glass layer */
+    .card::after {
       content: "";
       position: absolute;
       inset: 0;
-      border-radius: 18px;
-      opacity: 0;
-      transition: opacity 0.2s;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      pointer-events: none;
+      transition: border-color 0.25s;
     }
-
-    .card-blue::before  { background: radial-gradient(circle at 0% 0%, rgba(66,153,225,0.12), transparent 60%); }
-    .card-purple::before { background: radial-gradient(circle at 0% 0%, rgba(159,122,234,0.12), transparent 60%); }
 
     .card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(255,255,255,0.15);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      transform: translateY(-6px) scale(1.01);
     }
 
-    .card:hover::before { opacity: 1; }
+    .card:hover::after {
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    /* Card colour themes */
+    .card-blue {
+      background: linear-gradient(145deg, rgba(14,28,60,0.95) 0%, rgba(10,18,40,0.95) 100%);
+      box-shadow: 0 4px 30px rgba(59,130,246,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .card-blue:hover {
+      box-shadow: 0 24px 60px rgba(59,130,246,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .card-purple {
+      background: linear-gradient(145deg, rgba(28,14,55,0.95) 0%, rgba(18,10,40,0.95) 100%);
+      box-shadow: 0 4px 30px rgba(139,92,246,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .card-purple:hover {
+      box-shadow: 0 24px 60px rgba(139,92,246,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    /* Corner accent glow */
+    .card-glow {
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 130px; height: 130px;
+      border-radius: 50%;
+      filter: blur(35px);
+      opacity: 0.4;
+      transition: opacity 0.25s;
+    }
+
+    .card:hover .card-glow { opacity: 0.7; }
+    .glow-blue   { background: #3b82f6; }
+    .glow-purple { background: #8b5cf6; }
 
     .card-top {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
+      position: relative;
     }
 
-    .card-badge {
+    .card-icon {
+      width: 3rem; height: 3rem;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .icon-blue   { background: rgba(59,130,246,0.15); box-shadow: 0 0 0 1px rgba(59,130,246,0.2); }
+    .icon-purple { background: rgba(139,92,246,0.15); box-shadow: 0 0 0 1px rgba(139,92,246,0.2); }
+
+    .card-tag {
       font-size: 0.65rem;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      padding: 0.2rem 0.6rem;
+      padding: 0.25rem 0.65rem;
       border-radius: 999px;
     }
 
-    .badge-blue   { background: rgba(66,153,225,0.15); color: #63b3ed; }
-    .badge-purple { background: rgba(159,122,234,0.15); color: #b794f4; }
-
-    .card-icon-wrap {
-      width: 2.75rem;
-      height: 2.75rem;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.35rem;
-    }
-
-    .icon-blue   { background: rgba(66,153,225,0.15); }
-    .icon-purple { background: rgba(159,122,234,0.15); }
+    .tag-blue   { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+    .tag-purple { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
 
     .card h2 {
-      font-size: 1.05rem;
+      font-size: 1.15rem;
       font-weight: 700;
-      color: #f0f4f8;
+      color: #f1f5f9;
       line-height: 1.3;
+      position: relative;
     }
 
     .card p {
-      font-size: 0.83rem;
-      color: #4a6080;
-      line-height: 1.65;
+      font-size: 0.845rem;
+      color: #475569;
+      line-height: 1.7;
       flex: 1;
+      position: relative;
     }
 
-    .card-footer {
-      display: flex;
+    .card-btn {
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      padding-top: 0.75rem;
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .card-link {
-      font-size: 0.8rem;
+      gap: 0.5rem;
+      font-size: 0.82rem;
       font-weight: 600;
+      padding: 0.55rem 1.1rem;
+      border-radius: 10px;
+      position: relative;
+      width: fit-content;
+      transition: gap 0.2s;
     }
 
-    .link-blue   { color: #63b3ed; }
-    .link-purple { color: #b794f4; }
+    .card:hover .card-btn { gap: 0.75rem; }
 
-    .card-arrow {
-      width: 1.6rem;
-      height: 1.6rem;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      transition: transform 0.2s;
-    }
-
-    .arrow-blue   { background: rgba(66,153,225,0.15); color: #63b3ed; }
-    .arrow-purple { background: rgba(159,122,234,0.15); color: #b794f4; }
-
-    .card:hover .card-arrow { transform: translateX(3px); }
+    .btn-blue   { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+    .btn-purple { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
 
     /* ── Footer ── */
     footer {
-      margin-top: 2.5rem;
-      color: #1e2d45;
-      font-size: 0.75rem;
+      margin-top: 2.75rem;
+      color: #1e293b;
+      font-size: 0.72rem;
       letter-spacing: 0.05em;
     }
   </style>
 </head>
 <body>
-<div class="wrap">
 
-  <div class="header">
-    <div class="eyebrow">✦ Demo Projects</div>
-    <h1>What do you want<br>to explore today?</h1>
-    <p>Pick a project below to get started</p>
+  <!-- Background -->
+  <div class="bg">
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+    <div class="bg-grid"></div>
   </div>
 
-  <div class="grid">
+  <div class="wrap">
 
-    <a class="card card-blue" href="/course">
-      <div class="card-top">
-        <div class="card-icon-wrap icon-blue">📚</div>
-        <span class="card-badge badge-blue">Course Notes</span>
+    <div class="header">
+      <div class="eyebrow">
+        <span class="eyebrow-dot"></span>
+        Live Projects
       </div>
-      <h2>Agent Skills with Anthropic</h2>
-      <p>Full notes for the deeplearning.ai course — Skills, MCP, Subagents, Claude API and Agent SDK.</p>
-      <div class="card-footer">
-        <span class="card-link link-blue">Open notes</span>
-        <span class="card-arrow arrow-blue">→</span>
-      </div>
-    </a>
+      <h1>
+        <span class="line-1">Everything in</span>
+        <span class="line-2">one place</span>
+      </h1>
+      <p>Choose a project to get started</p>
+    </div>
 
-    <a class="card card-purple" href="/btc">
-      <div class="card-top">
-        <div class="card-icon-wrap icon-purple">📈</div>
-        <span class="card-badge badge-purple">Live Chart</span>
-      </div>
-      <h2>BTC Greeks Chart</h2>
-      <p>Real-time Bitcoin options Greeks — IV, Delta, Gamma — streamed from Deribit and Bybit.</p>
-      <div class="card-footer">
-        <span class="card-link link-purple">Open chart</span>
-        <span class="card-arrow arrow-purple">→</span>
-      </div>
-    </a>
+    <div class="grid">
+
+      <a class="card card-blue" href="/course">
+        <div class="card-glow glow-blue"></div>
+        <div class="card-top">
+          <div class="card-icon icon-blue">📚</div>
+          <span class="card-tag tag-blue">Course Notes</span>
+        </div>
+        <h2>Agent Skills<br>with Anthropic</h2>
+        <p>Full notes for the deeplearning.ai course — Skills, MCP, Subagents, Claude API and Agent SDK with code examples.</p>
+        <div class="card-btn btn-blue">Read notes →</div>
+      </a>
+
+      <a class="card card-purple" href="/btc">
+        <div class="card-glow glow-purple"></div>
+        <div class="card-top">
+          <div class="card-icon icon-purple">📈</div>
+          <span class="card-tag tag-purple">Live Chart</span>
+        </div>
+        <h2>BTC Greeks<br>Chart</h2>
+        <p>Real-time Bitcoin options Greeks — IV, Delta, Gamma — streamed live from Deribit and Bybit APIs.</p>
+        <div class="card-btn btn-purple">Open chart →</div>
+      </a>
+
+    </div>
+
+    <footer>whale-app-6umlu.ondigitalocean.app</footer>
 
   </div>
 
-  <footer>whale-app-6umlu.ondigitalocean.app</footer>
-
-</div>
 </body>
 </html>
