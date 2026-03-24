@@ -3735,8 +3735,9 @@ function updateFooter() {
 
 function updateDayButtons() {
   if (currentRes !== 'min') return;
-  const minDays = MIN_BTC_TICKS.length > 1
-    ? Math.ceil((MIN_BTC_TICKS[MIN_BTC_TICKS.length - 1] - MIN_BTC_TICKS[0]) / 86400000)
+  const tks = currentExchange === 'bybit' ? MNT_MIN_TICKS : MIN_BTC_TICKS;
+  const minDays = tks.length > 1
+    ? Math.ceil((tks[tks.length - 1] - tks[0]) / 86400000)
     : 3;
   document.querySelectorAll('.tp-btn').forEach(b => {
     const days = +b.dataset.days;
@@ -4108,7 +4109,13 @@ document.querySelectorAll('.tp-btn').forEach(btn => {
       : (_hourTks && _hourTks.length ? _hourTks[0] : (currentExchange === 'bybit' ? dataEnd - 30*86400000 : DATA_START_MS));
     const start = Math.max(dataStart, dataEnd - days*24*3600*1000);
     applyRange(start, dataEnd);
-    if (currentExchange === 'bybit') fetchAndMergeMnt();
+    if (currentExchange === 'bybit') {
+      fetchAndMergeMnt();
+      // If Bybit 1-min and requested range exceeds available data, backfill
+      if (currentRes === 'min' && dataEnd - days*24*3600*1000 < dataStart) {
+        backfillMntMin(days).catch(()=>{});
+      }
+    }
   });
 });
 
@@ -4321,7 +4328,31 @@ async function backfillMntHour() {
     mergeInto(MNT_HOUR_TICKS, MNT_HOUR_CLOSE, chunk.ticks, chunk.close);
     convexCall('mutation', 'candles:append', { name: 'mnt_hour', newTicks: chunk.ticks, newCloses: chunk.close }).catch(()=>{});
     endMs = MNT_HOUR_TICKS[0];
-    if (endMs >= prevFirst) break; // no older data available
+    if (endMs >= prevFirst) break;
+  }
+}
+
+async function backfillMntMin(targetDays) {
+  const cutoff = Date.now() - targetDays * 24 * 3600 * 1000;
+  let endMs = MNT_MIN_TICKS.length ? MNT_MIN_TICKS[0] : Date.now();
+  while (endMs > cutoff) {
+    const chunk = await fetchBybitKline('MNTUSDT', 1, 1000, endMs);
+    if (!chunk || !chunk.ticks.length) break;
+    const prevFirst = endMs;
+    mergeInto(MNT_MIN_TICKS, MNT_MIN_CLOSE, chunk.ticks, chunk.close);
+    convexCall('mutation', 'candles:append', { name: 'mnt_min', newTicks: chunk.ticks, newCloses: chunk.close }).catch(()=>{});
+    endMs = MNT_MIN_TICKS[0];
+    if (endMs >= prevFirst) break;
+    // Update chart after each chunk
+    if (currentExchange === 'bybit' && currentRes === 'min') {
+      updateDayButtons();
+      const activeBtn = document.querySelector('.tp-btn.active');
+      if (activeBtn) {
+        const days = +activeBtn.dataset.days;
+        const end = MNT_MIN_TICKS[MNT_MIN_TICKS.length - 1];
+        applyRange(Math.max(MNT_MIN_TICKS[0], end - days*86400000), end);
+      }
+    }
   }
 }
 
