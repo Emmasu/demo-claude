@@ -9,7 +9,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0f1117;
+      background: #060810;
       color: #e2e8f0;
       min-height: 100vh;
       display: flex;
@@ -17,108 +17,260 @@
       align-items: center;
       justify-content: center;
       padding: 2rem;
+      overflow: hidden;
     }
 
+    /* ── Ambient glow background ── */
+    body::before {
+      content: "";
+      position: fixed;
+      top: -30%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(56, 100, 220, 0.18) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      bottom: -20%;
+      left: 20%;
+      width: 500px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(120, 40, 200, 0.1) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    /* ── Header ── */
     .header {
       text-align: center;
-      margin-bottom: 3rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .header .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(99, 179, 237, 0.08);
+      border: 1px solid rgba(99, 179, 237, 0.2);
+      color: #63b3ed;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.9rem;
+      border-radius: 999px;
+      margin-bottom: 1.25rem;
     }
 
     .header h1 {
-      font-size: 2rem;
+      font-size: 2.75rem;
       font-weight: 800;
-      color: #f7fafc;
-      margin-bottom: 0.5rem;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #f7fafc 30%, #90cdf4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.75rem;
     }
 
     .header p {
-      color: #718096;
-      font-size: 0.95rem;
+      color: #4a6080;
+      font-size: 1rem;
     }
 
+    /* ── Cards ── */
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.25rem;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
       width: 100%;
-      max-width: 700px;
+    }
+
+    @media (max-width: 520px) {
+      .grid { grid-template-columns: 1fr; }
+      .header h1 { font-size: 2rem; }
     }
 
     .card {
-      background: #1a202c;
-      border: 1px solid #2d3748;
-      border-radius: 14px;
+      position: relative;
+      background: rgba(20, 28, 45, 0.8);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px;
       padding: 1.75rem;
       text-decoration: none;
       color: inherit;
-      transition: border-color 0.15s, transform 0.15s;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 1rem;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      backdrop-filter: blur(12px);
     }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .card-blue::before  { background: radial-gradient(circle at 0% 0%, rgba(66,153,225,0.12), transparent 60%); }
+    .card-purple::before { background: radial-gradient(circle at 0% 0%, rgba(159,122,234,0.12), transparent 60%); }
 
     .card:hover {
-      border-color: #4299e1;
-      transform: translateY(-2px);
+      transform: translateY(-4px);
+      border-color: rgba(255,255,255,0.15);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
     }
 
-    .card-icon {
-      font-size: 2rem;
+    .card:hover::before { opacity: 1; }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
+
+    .card-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+    }
+
+    .badge-blue   { background: rgba(66,153,225,0.15); color: #63b3ed; }
+    .badge-purple { background: rgba(159,122,234,0.15); color: #b794f4; }
+
+    .card-icon-wrap {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+    }
+
+    .icon-blue   { background: rgba(66,153,225,0.15); }
+    .icon-purple { background: rgba(159,122,234,0.15); }
 
     .card h2 {
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 700;
-      color: #f7fafc;
+      color: #f0f4f8;
+      line-height: 1.3;
     }
 
     .card p {
-      font-size: 0.875rem;
-      color: #718096;
-      line-height: 1.6;
+      font-size: 0.83rem;
+      color: #4a6080;
+      line-height: 1.65;
       flex: 1;
     }
 
-    .card .arrow {
-      color: #4299e1;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-top: 0.25rem;
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 0.75rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
     }
 
+    .card-link {
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .link-blue   { color: #63b3ed; }
+    .link-purple { color: #b794f4; }
+
+    .card-arrow {
+      width: 1.6rem;
+      height: 1.6rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      transition: transform 0.2s;
+    }
+
+    .arrow-blue   { background: rgba(66,153,225,0.15); color: #63b3ed; }
+    .arrow-purple { background: rgba(159,122,234,0.15); color: #b794f4; }
+
+    .card:hover .card-arrow { transform: translateX(3px); }
+
+    /* ── Footer ── */
     footer {
-      margin-top: 3rem;
-      color: #4a5568;
-      font-size: 0.78rem;
+      margin-top: 2.5rem;
+      color: #1e2d45;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
     }
   </style>
 </head>
 <body>
+<div class="wrap">
 
   <div class="header">
-    <h1>Projects</h1>
-    <p>Select a project to open</p>
+    <div class="eyebrow">✦ Demo Projects</div>
+    <h1>What do you want<br>to explore today?</h1>
+    <p>Pick a project below to get started</p>
   </div>
 
   <div class="grid">
 
-    <a class="card" href="/course">
-      <div class="card-icon">📚</div>
+    <a class="card card-blue" href="/course">
+      <div class="card-top">
+        <div class="card-icon-wrap icon-blue">📚</div>
+        <span class="card-badge badge-blue">Course Notes</span>
+      </div>
       <h2>Agent Skills with Anthropic</h2>
-      <p>Full course notes for the deeplearning.ai course on building AI agents with Claude Skills, MCP, and Subagents.</p>
-      <div class="arrow">Open course notes →</div>
+      <p>Full notes for the deeplearning.ai course — Skills, MCP, Subagents, Claude API and Agent SDK.</p>
+      <div class="card-footer">
+        <span class="card-link link-blue">Open notes</span>
+        <span class="card-arrow arrow-blue">→</span>
+      </div>
     </a>
 
-    <a class="card" href="/btc">
-      <div class="card-icon">📈</div>
+    <a class="card card-purple" href="/btc">
+      <div class="card-top">
+        <div class="card-icon-wrap icon-purple">📈</div>
+        <span class="card-badge badge-purple">Live Chart</span>
+      </div>
       <h2>BTC Greeks Chart</h2>
-      <p>Live Bitcoin options Greeks chart — IV, Delta, Gamma and more, pulled from Deribit and Bybit in real time.</p>
-      <div class="arrow">Open chart →</div>
+      <p>Real-time Bitcoin options Greeks — IV, Delta, Gamma — streamed from Deribit and Bybit.</p>
+      <div class="card-footer">
+        <span class="card-link link-purple">Open chart</span>
+        <span class="card-arrow arrow-purple">→</span>
+      </div>
     </a>
 
   </div>
 
   <footer>whale-app-6umlu.ondigitalocean.app</footer>
 
+</div>
 </body>
 </html>
