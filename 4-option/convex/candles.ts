@@ -1,8 +1,9 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-const MAX_DAYS_MIN  = 7;   // minute-resolution series
-const MAX_DAYS_HOUR = 90;  // hourly-resolution series
+const MAX_DAYS_MIN  = 7;    // minute-resolution series
+const MAX_DAYS_HOUR = 90;   // hourly-resolution series
+const MAX_DAYS_DAY  = 365;  // daily-resolution series
 
 // Returns all stored candle series
 export const getAll = query({
@@ -20,7 +21,7 @@ export const append = mutation({
     newCloses: v.array(v.number()),
   },
   handler: async (ctx, { name, newTicks, newCloses }) => {
-    const maxDays = name.endsWith('_hour') ? MAX_DAYS_HOUR : MAX_DAYS_MIN;
+    const maxDays = name.endsWith('_day') ? MAX_DAYS_DAY : name.endsWith('_hour') ? MAX_DAYS_HOUR : MAX_DAYS_MIN;
     const cutoff = Date.now() - maxDays * 24 * 3600 * 1000;
 
     const existing = await ctx.db

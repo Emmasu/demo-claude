@@ -76,9 +76,11 @@ def fetch_deribit_dvol(start_ms, end_ms):
     return {"ticks": [r[0] for r in rows], "closes": [r[4] for r in rows]}
 
 # ── Bybit ─────────────────────────────────────────────────────────────────────
-def fetch_bybit_kline(symbol, interval, limit=200):
+def fetch_bybit_kline(symbol, interval, limit=200, end_ms=None):
     url = (f"{BYBIT_BASE}/v5/market/kline"
            f"?category=spot&symbol={symbol}&interval={interval}&limit={limit}")
+    if end_ms:
+        url += f"&end={end_ms}"
     d = get(url)
     if d.get("retCode") != 0:
         return None
@@ -107,7 +109,7 @@ def save_to_convex(name, ticks, closes):
 last_ts = {
     "btc_min": 0, "call_min": 0, "put_min": 0,
     "btc_hour": 0, "call_hour": 0, "put_hour": 0, "dvol_hour": 0,
-    "mnt_min": 0, "mnt_hour": 0,
+    "mnt_min": 0, "mnt_hour": 0, "mnt_day": 0,
 }
 
 def now_ms():
@@ -181,6 +183,19 @@ def fetch_bybit():
                 last_ts["mnt_hour"] = new_ticks[-1]
     except Exception as e:
         log.warning(f"bybit mnt_hour: {e}")
+
+    # ── MNT spot daily ──
+    try:
+        data = fetch_bybit_kline(MNT_SPOT, "D", limit=500)
+        if data:
+            cutoff = last_ts["mnt_day"]
+            new_ticks  = [t for t in data["ticks"]  if t > cutoff]
+            new_closes = [c for t, c in zip(data["ticks"], data["closes"]) if t > cutoff]
+            if new_ticks:
+                save_to_convex("mnt_day", new_ticks, new_closes)
+                last_ts["mnt_day"] = new_ticks[-1]
+    except Exception as e:
+        log.warning(f"bybit mnt_day: {e}")
 
     # ── MNT live IV (ticker) ──
     try:

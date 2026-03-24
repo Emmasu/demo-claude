@@ -100,6 +100,7 @@
 
 <div id="time-picker">
   <span class="tp-label">Resolution:</span>
+  <button class="tp-res" data-res="day">Day</button>
   <button class="tp-res" data-res="hour">Hourly</button>
   <button class="tp-res active" data-res="min">1-min</button>
   <span class="tp-sep">|</span>
@@ -109,6 +110,7 @@
   <button class="tp-btn" data-days="7">7D</button>
   <button class="tp-btn" data-days="30">30D</button>
   <button class="tp-btn" data-days="90">90D</button>
+  <button class="tp-btn" data-days="365">1Y</button>
   <span class="tp-sep">|</span>
   <span class="tp-label">From</span>
   <input type="datetime-local" id="tp-start" />
@@ -3628,14 +3630,16 @@ async function loadFromConvex() {
   if (CONVEX_URL === 'YOUR_CONVEX_URL_HERE') return;
   try {
     const series = await convexCall('query', 'candles:getAll', {});
-    const cutoff7d  = Date.now() - 7  * 24 * 3600 * 1000;
-    const cutoff90d = Date.now() - 90 * 24 * 3600 * 1000;
+    const cutoff7d   = Date.now() - 7   * 24 * 3600 * 1000;
+    const cutoff90d  = Date.now() - 90  * 24 * 3600 * 1000;
+    const cutoff365d = Date.now() - 365 * 24 * 3600 * 1000;
     const seriesMap = {
       btc_min:  [MIN_BTC_TICKS,   MIN_BTC_CLOSE,   cutoff7d],
       call_min: [MIN_CALL_TICKS,  MIN_CALL_CLOSE,  cutoff7d],
       put_min:  [MIN_PUT_TICKS,   MIN_PUT_CLOSE,   cutoff7d],
       mnt_min:  [MNT_MIN_TICKS,   MNT_MIN_CLOSE,   cutoff7d],
       mnt_hour: [MNT_HOUR_TICKS,  MNT_HOUR_CLOSE,  cutoff90d],
+      mnt_day:  [MNT_DAY_TICKS,   MNT_DAY_CLOSE,   cutoff365d],
       mnt_iv:   [MNT_IV_TICKS,    MNT_IV_VALUES,   cutoff90d],
     };
     for (const s of series) {
@@ -3736,14 +3740,19 @@ function updateFooter() {
 }
 
 function updateDayButtons() {
-  if (currentRes !== 'min') return;
-  const tks = currentExchange === 'bybit' ? MNT_MIN_TICKS : MIN_BTC_TICKS;
-  const minDays = tks.length > 1
-    ? Math.ceil((tks[tks.length - 1] - tks[0]) / 86400000)
-    : 3;
+  const tks = currentRes === 'min'
+    ? (currentExchange === 'bybit' ? MNT_MIN_TICKS : MIN_BTC_TICKS)
+    : currentRes === 'day'
+      ? MNT_DAY_TICKS
+      : null; // hourly: don't restrict
+  if (!tks) {
+    document.querySelectorAll('.tp-btn').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    return;
+  }
+  const spanDays = tks.length > 1 ? Math.ceil((tks[tks.length-1] - tks[0]) / 86400000) : 1;
   document.querySelectorAll('.tp-btn').forEach(b => {
     const days = +b.dataset.days;
-    b.disabled = days > minDays;
+    b.disabled = days > spanDays;
     b.style.opacity = b.disabled ? '0.3' : '1';
   });
 }
@@ -4051,7 +4060,9 @@ function applyRange(startMs, endMs, res) {
   const isBybit = currentExchange === 'bybit';
   const firstTick = effectiveRes === 'min'
     ? (isBybit ? MNT_MIN_TICKS[0] : MIN_BTC_TICKS[0])
-    : (isBybit ? MNT_HOUR_TICKS[0] : RAW_TICKS[0]);
+    : effectiveRes === 'day'
+      ? MNT_DAY_TICKS[0]
+      : (isBybit ? MNT_HOUR_TICKS[0] : RAW_TICKS[0]);
   const clampedStart = firstTick ? Math.max(startMs, firstTick) : startMs;
   tpStart.value = toInputVal(clampedStart);
   tpEnd.value   = toInputVal(endMs);
@@ -4065,31 +4076,28 @@ document.querySelectorAll('.tp-res').forEach(btn => {
     btn.classList.add('active');
     currentRes = btn.dataset.res;
     const isMin = currentRes === 'min';
-    // For minute mode, cap range to 24h (that's all we have)
-    const minTks    = currentExchange === 'bybit' ? MNT_MIN_TICKS : MIN_BTC_TICKS;
-    const hourTks   = currentExchange === 'bybit' ? MNT_HOUR_TICKS : null;
-    const dataEnd   = isMin
+    const isDay = currentRes === 'day';
+    const minTks  = currentExchange === 'bybit' ? MNT_MIN_TICKS : MIN_BTC_TICKS;
+    const hourTks = currentExchange === 'bybit' ? MNT_HOUR_TICKS : null;
+    const dayTks  = MNT_DAY_TICKS;
+    const dataEnd = isMin
       ? (minTks[minTks.length-1] || Date.now())
-      : (hourTks && hourTks.length ? hourTks[hourTks.length-1] : (currentExchange === 'bybit' ? Date.now() : DATA_END_MS));
+      : isDay
+        ? (dayTks.length ? dayTks[dayTks.length-1] : Date.now())
+        : (hourTks && hourTks.length ? hourTks[hourTks.length-1] : (currentExchange === 'bybit' ? Date.now() : DATA_END_MS));
     const dataStart = isMin
       ? (minTks[0] || DATA_START_MS)
-      : (hourTks && hourTks.length ? hourTks[0] : (currentExchange === 'bybit' ? dataEnd - 30*86400000 : DATA_START_MS));
-    // Restrict day buttons for minute mode based on actual accumulated data
-    if (isMin) {
-      updateDayButtons();
-      const minDays = minTks.length > 1
-        ? Math.ceil((minTks[minTks.length - 1] - minTks[0]) / 86400000)
-        : 3;
-      const bestBtn = Math.min(minDays, [1, 3, 7, 30].filter(d => d <= minDays).pop() || 3);
-      document.querySelectorAll('.tp-btn').forEach(b => b.classList.remove('active'));
-      const activeBtn = document.querySelector(`.tp-btn[data-days="${bestBtn}"]`);
-      if (activeBtn) activeBtn.classList.add('active');
-    } else {
-      document.querySelectorAll('.tp-btn').forEach(b => {
-        b.disabled = false; b.style.opacity = '1';
-      });
-    }
-    applyRange(dataStart, dataEnd, currentRes);
+      : isDay
+        ? (dayTks.length ? dayTks[0] : dataEnd - 365*86400000)
+        : (hourTks && hourTks.length ? hourTks[0] : (currentExchange === 'bybit' ? dataEnd - 30*86400000 : DATA_START_MS));
+    updateDayButtons();
+    const spanDays = Math.ceil((dataEnd - dataStart) / 86400000) || 1;
+    const allDays = [1,3,7,30,90,365];
+    const bestDays = allDays.filter(d => d <= spanDays).pop() || allDays[0];
+    document.querySelectorAll('.tp-btn').forEach(b => b.classList.remove('active'));
+    const bestBtn = document.querySelector(`.tp-btn[data-days="${bestDays}"]`);
+    if (bestBtn) bestBtn.classList.add('active');
+    applyRange(Math.max(dataStart, dataEnd - bestDays*86400000), dataEnd, currentRes);
     if (currentExchange === 'bybit') fetchAndMergeMnt();
   });
 });
@@ -4101,24 +4109,26 @@ document.querySelectorAll('.tp-btn').forEach(btn => {
     document.querySelectorAll('.tp-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const days = +btn.dataset.days;
-    const _minTks   = currentExchange === 'bybit' ? MNT_MIN_TICKS : MIN_BTC_TICKS;
-    const _hourTks  = currentExchange === 'bybit' ? MNT_HOUR_TICKS : null;
-    const dataEnd   = currentRes === 'min'
+    const _minTks  = currentExchange === 'bybit' ? MNT_MIN_TICKS : MIN_BTC_TICKS;
+    const _hourTks = currentExchange === 'bybit' ? MNT_HOUR_TICKS : null;
+    const _dayTks  = MNT_DAY_TICKS;
+    const dataEnd = currentRes === 'min'
       ? (_minTks[_minTks.length-1] || Date.now())
-      : (_hourTks && _hourTks.length ? _hourTks[_hourTks.length-1] : (currentExchange === 'bybit' ? Date.now() : DATA_END_MS));
+      : currentRes === 'day'
+        ? (_dayTks.length ? _dayTks[_dayTks.length-1] : Date.now())
+        : (_hourTks && _hourTks.length ? _hourTks[_hourTks.length-1] : (currentExchange === 'bybit' ? Date.now() : DATA_END_MS));
     const dataStart = currentRes === 'min'
       ? (_minTks[0] || DATA_START_MS)
-      : (_hourTks && _hourTks.length ? _hourTks[0] : (currentExchange === 'bybit' ? dataEnd - 30*86400000 : DATA_START_MS));
+      : currentRes === 'day'
+        ? (_dayTks.length ? _dayTks[0] : dataEnd - 365*86400000)
+        : (_hourTks && _hourTks.length ? _hourTks[0] : (currentExchange === 'bybit' ? dataEnd - 30*86400000 : DATA_START_MS));
     const start = Math.max(dataStart, dataEnd - days*24*3600*1000);
     applyRange(start, dataEnd);
     if (currentExchange === 'bybit') {
       fetchAndMergeMnt();
-      // If requested range exceeds available data, backfill
-      if (currentRes === 'min' && dataEnd - days*24*3600*1000 < dataStart) {
-        backfillMntMin(days).catch(()=>{});
-      } else if (currentRes === 'hour' && dataEnd - days*24*3600*1000 < dataStart) {
-        backfillMntHour().catch(()=>{});
-      }
+      if (currentRes === 'min'  && dataEnd - days*86400000 < dataStart) backfillMntMin(days).catch(()=>{});
+      else if (currentRes === 'hour' && dataEnd - days*86400000 < dataStart) backfillMntHour().catch(()=>{});
+      else if (currentRes === 'day'  && dataEnd - days*86400000 < dataStart) backfillMntDay().catch(()=>{});
     }
   });
 });
@@ -4142,6 +4152,7 @@ let MNT_PUT_SYM  = 'MNT-27MAR26-0.76-P-USDT';
 
 let MNT_MIN_TICKS  = [], MNT_MIN_CLOSE  = [];
 let MNT_HOUR_TICKS = [], MNT_HOUR_CLOSE = [];
+let MNT_DAY_TICKS  = [], MNT_DAY_CLOSE  = [];
 let MNT_IV = 0.94; // live markIv, updated by fetchBybitTicker
 
 // Historical IV computed from option mark price kline via BS inversion
@@ -4240,9 +4251,11 @@ function getMntIV(ts) {
 }
 
 function renderMntAsUnified(startMs, endMs, res) {
-  const isMin  = (res || currentRes) === 'min';
-  const ticks  = isMin ? MNT_MIN_TICKS  : MNT_HOUR_TICKS;
-  const closes = isMin ? MNT_MIN_CLOSE  : MNT_HOUR_CLOSE;
+  const r = res || currentRes;
+  const isMin  = r === 'min';
+  const isDay  = r === 'day';
+  const ticks  = isMin ? MNT_MIN_TICKS  : (isDay ? MNT_DAY_TICKS  : MNT_HOUR_TICKS);
+  const closes = isMin ? MNT_MIN_CLOSE  : (isDay ? MNT_DAY_CLOSE  : MNT_HOUR_CLOSE);
   if (!ticks.length) return;
 
   const labels=[], prices=[], callDs=[], putDs=[], gammas=[], callTs=[], putTs=[], vegas=[], ivs=[], callPs=[], putPs=[];
@@ -4282,7 +4295,7 @@ function renderMntAsUnified(startMs, endMs, res) {
   CHARTS.gamma.data.datasets[0].label = 'Γ';
   CHARTS.vega.data.datasets[0].label  = 'Vega';
 
-  const w = isMin ? 8 : 4;
+  const w = isMin ? 8 : (isDay ? 2 : 4);
   const sm = (arr, ww) => sma(arr, ww || w);
   const sets = [
     [CHARTS.delta,    labels, sm(callDs), sm(putDs)],
@@ -4331,6 +4344,27 @@ async function backfillMntHour() {
   }
 }
 
+async function backfillMntDay() {
+  const cutoff = Date.now() - 365 * 24 * 3600 * 1000;
+  let endMs = MNT_DAY_TICKS.length ? MNT_DAY_TICKS[0] : Date.now();
+  while (endMs > cutoff) {
+    const chunk = await fetchBybitKline('MNTUSDT', 'D', 1000, endMs);
+    if (!chunk || !chunk.ticks.length) break;
+    const prevFirst = endMs;
+    mergeIntoFull(MNT_DAY_TICKS, MNT_DAY_CLOSE, chunk.ticks, chunk.close);
+    convexCall('mutation', 'candles:append', { name: 'mnt_day', newTicks: chunk.ticks, newCloses: chunk.close }).catch(()=>{});
+    endMs = MNT_DAY_TICKS[0];
+    if (endMs >= prevFirst) break;
+    if (currentExchange === 'bybit' && currentRes === 'day') {
+      updateDayButtons();
+      const activeBtn = document.querySelector('.tp-btn.active');
+      const days = activeBtn ? +activeBtn.dataset.days : 365;
+      const end = MNT_DAY_TICKS[MNT_DAY_TICKS.length - 1];
+      applyRange(Math.max(MNT_DAY_TICKS[0], end - days*86400000), end);
+    }
+  }
+}
+
 async function backfillMntMin(targetDays) {
   const cutoff = Date.now() - targetDays * 24 * 3600 * 1000;
   let endMs = MNT_MIN_TICKS.length ? MNT_MIN_TICKS[0] : Date.now();
@@ -4357,31 +4391,37 @@ async function backfillMntMin(targetDays) {
 
 async function fetchAndMergeMnt() {
   const isMin  = currentRes === 'min';
-  const arr    = isMin ? MNT_MIN_TICKS : MNT_HOUR_TICKS;
-  const lastTs = arr.length ? arr[arr.length - 1] : Date.now() - (isMin ? 2*86400000 : 30*86400000);
+  const isDay  = currentRes === 'day';
+  const arr    = isMin ? MNT_MIN_TICKS : (isDay ? MNT_DAY_TICKS : MNT_HOUR_TICKS);
+  const defaultLookback = isMin ? 2*86400000 : isDay ? 365*86400000 : 30*86400000;
+  const lastTs = arr.length ? arr[arr.length - 1] : Date.now() - defaultLookback;
   const nowMs  = Date.now();
   if (nowMs - lastTs < 55000) return;
 
   setStatus('loading');
 
   try {
-    const interval = isMin ? 1 : 60;
+    const interval = isMin ? 1 : (isDay ? 'D' : 60);
     const [kline, markKline] = await Promise.all([
       fetchBybitKline('MNTUSDT', interval, 1000),
-      fetchBybitMarkPriceKline(MNT_CALL_SYM, interval, 1000),
+      isDay ? Promise.resolve(null) : fetchBybitMarkPriceKline(MNT_CALL_SYM, interval, 1000),
     ]);
     if (kline) {
       if (isMin) {
         mergeInto(MNT_MIN_TICKS,  MNT_MIN_CLOSE,  kline.ticks, kline.close);
         convexCall('mutation', 'candles:append', { name: 'mnt_min',  newTicks: kline.ticks, newCloses: kline.close }).catch(()=>{});
-        // Backfill if less than 7D available
         if (MNT_MIN_TICKS.length && (Date.now() - MNT_MIN_TICKS[0]) < 6 * 24 * 3600 * 1000) {
           backfillMntMin(7).catch(()=>{});
+        }
+      } else if (isDay) {
+        mergeIntoFull(MNT_DAY_TICKS, MNT_DAY_CLOSE, kline.ticks, kline.close);
+        convexCall('mutation', 'candles:append', { name: 'mnt_day', newTicks: kline.ticks, newCloses: kline.close }).catch(()=>{});
+        if (MNT_DAY_TICKS.length && (Date.now() - MNT_DAY_TICKS[0]) < 364 * 24 * 3600 * 1000) {
+          backfillMntDay().catch(()=>{});
         }
       } else {
         mergeIntoFull(MNT_HOUR_TICKS, MNT_HOUR_CLOSE, kline.ticks, kline.close);
         convexCall('mutation', 'candles:append', { name: 'mnt_hour', newTicks: kline.ticks, newCloses: kline.close }).catch(()=>{});
-        // Backfill older history if less than 90D available
         if (MNT_HOUR_TICKS.length && (Date.now() - MNT_HOUR_TICKS[0]) < 89 * 24 * 3600 * 1000) {
           backfillMntHour().catch(()=>{});
         }
