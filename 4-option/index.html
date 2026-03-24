@@ -76,13 +76,13 @@
 </head>
 <body>
 
-<h1 id="main-title">Options Greeks — Deribit · BTC</h1>
-<div class="subtitle" id="main-subtitle">BTC-20MAR26-74000 &nbsp;|&nbsp; Strike $74,000 &nbsp;|&nbsp; Expiry 20 Mar 2026 16:00 UTC+8</div>
+<h1 id="main-title">Options Greeks — Bybit · MNT</h1>
+<div class="subtitle" id="main-subtitle">MNT-27MAR26-0.76 &nbsp;|&nbsp; Strike $0.76 &nbsp;|&nbsp; Expiry 27MAR26 &nbsp;|&nbsp; Bybit</div>
 <div class="contract-bar">
   <span class="tp-label">Exchange:</span>
   <select id="exch-sel" class="contract-sel">
     <option value="deribit">Deribit · BTC</option>
-    <option value="bybit">Bybit · MNT</option>
+    <option value="bybit" selected>Bybit · MNT</option>
   </select>
   <select id="expiry-sel" class="contract-sel"><option>Loading…</option></select>
   <select id="strike-sel" class="contract-sel"><option>Loading…</option></select>
@@ -90,8 +90,8 @@
 </div>
 
 <div id="stats">
-  <div class="stat-box"><div class="stat-label" id="sl-index">BTC Index</div>   <div class="stat-value orange" id="s-index">—</div></div>
-  <div class="stat-box"><div class="stat-label" id="sl-dvol">DVOL (IV)</div>    <div class="stat-value blue"   id="s-dvol">—</div></div>
+  <div class="stat-box"><div class="stat-label" id="sl-index">MNT Price</div>   <div class="stat-value orange" id="s-index">—</div></div>
+  <div class="stat-box"><div class="stat-label" id="sl-dvol">IV (markIv)</div>    <div class="stat-value blue"   id="s-dvol">—</div></div>
   <div class="stat-box"><div class="stat-label">Delta Δ (Call)</div>            <div class="stat-value green"  id="s-delta">—</div></div>
   <div class="stat-box"><div class="stat-label">Gamma Γ</div>                   <div class="stat-value teal"   id="s-gamma">—</div></div>
   <div class="stat-box"><div class="stat-label">Theta Θ/day</div>               <div class="stat-value red"    id="s-theta">—</div></div>
@@ -122,8 +122,8 @@
 </div>
 
 <div class="grid">
-  <div class="chart-card" style="grid-column: span 2;"><h2 id="opt-price-title">Option Mark Price — USD (Call &amp; Put, BTC-20MAR26-74000)</h2><canvas id="cOptPrice" style="max-height:220px;"></canvas></div>
-  <div class="chart-card"><h2 id="price-chart-title">BTC Index Price (USD)</h2><canvas id="cPrice"></canvas></div>
+  <div class="chart-card" style="grid-column: span 2;"><h2 id="opt-price-title">Option Mark Price — USDT (Call &amp; Put, MNT-27MAR26-0.76)</h2><canvas id="cOptPrice" style="max-height:220px;"></canvas></div>
+  <div class="chart-card"><h2 id="price-chart-title">MNT Spot Price (USDT)</h2><canvas id="cPrice"></canvas></div>
   <div class="chart-card"><h2 id="iv-chart-title">Implied Volatility (DVOL %)</h2><canvas id="cIV"></canvas></div>
   <div class="chart-card"><h2>Gamma (Γ)</h2><canvas id="cGamma"></canvas></div>
   <div class="chart-card"><h2>Vega (V) — USD per 1% IV</h2><canvas id="cVega"></canvas></div>
@@ -3651,7 +3651,9 @@ async function loadFromConvex() {
     }
     rebuildMinMaps();
     updateDayButtons();
-    if (currentRes === 'min') {
+    if (currentRes === 'min' && currentExchange === 'bybit' && MNT_MIN_TICKS.length) {
+      renderCharts(MNT_MIN_TICKS[0], MNT_MIN_TICKS[MNT_MIN_TICKS.length - 1], 'min');
+    } else if (currentRes === 'min' && currentExchange === 'deribit' && MIN_BTC_TICKS.length) {
       renderCharts(MIN_BTC_TICKS[0], MIN_BTC_TICKS[MIN_BTC_TICKS.length - 1], 'min');
     }
     updateFooter();
@@ -3963,7 +3965,7 @@ allCharts().forEach(chart => {
 
 // ── Render with range filter ──────────────────────────────────────────────────
 let currentRes = 'min';      // 'hour' | 'min'
-let currentExchange = 'deribit'; // 'deribit' | 'bybit'
+let currentExchange = 'bybit'; // 'deribit' | 'bybit'
 
 function renderCharts(startMs, endMs, res) {
   if (currentExchange === 'bybit') { renderMntAsUnified(startMs, endMs, res); return; }
@@ -4128,19 +4130,7 @@ document.getElementById('tp-apply').addEventListener('click', () => {
   renderCharts(s, e);
 });
 
-// ── Stat boxes ────────────────────────────────────────────────────────────────
-const lastSig = getIV(DATA_END_MS);
-const lastT   = (EXPIRY_MS - Date.now()) / (365.25*24*3600*1000);
-const lastG   = greeks(CURRENT_PRICE, STRIKE, lastT, RATE, lastSig);
-
-document.getElementById('s-index').textContent = `$${CURRENT_PRICE.toLocaleString()}`;
-document.getElementById('s-dvol').textContent  = `${(lastSig*100).toFixed(2)}%`;
-if (lastG) {
-  document.getElementById('s-delta').textContent = lastG.callDelta.toFixed(4);
-  document.getElementById('s-gamma').textContent = (lastG.gamma*1e5).toFixed(4)+'×10⁻⁵';
-  document.getElementById('s-theta').textContent = `$${lastG.thetaCall.toFixed(1)}`;
-  document.getElementById('s-vega').textContent  = `$${lastG.vega.toFixed(2)}`;
-}
+// ── Stat boxes — default Bybit, populated by first fetchAndMergeMnt() ─────────
 
 // ── MNT Options config (Bybit) ────────────────────────────────────────────────
 let MNT_STRIKE   = 0.76;
