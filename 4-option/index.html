@@ -4239,9 +4239,10 @@ function impliedVol(S, K, T, callPrice) {
   return (lo + hi) / 2;
 }
 
-// Binary-search the most recent IV at or before ts; fall back to live MNT_IV
+// Binary-search the most recent IV at or before ts; returns null if no data exists yet for ts
 function getMntIV(ts) {
   if (!MNT_IV_TICKS.length) return MNT_IV;
+  if (ts < MNT_IV_TICKS[0]) return null; // no IV data this far back
   let lo = 0, hi = MNT_IV_TICKS.length - 1, idx = 0;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
@@ -4268,6 +4269,7 @@ function renderMntAsUnified(startMs, endMs, res) {
     const T  = (MNT_EXPIRY - ts) / (365.25*24*3600*1000);
     if (T <= 0) continue;
     const iv = getMntIV(ts);
+    if (iv === null) continue; // no IV data for this period
     const g  = greeks(S, MNT_STRIKE, T, 0, iv);
     if (!g) continue;
     const sq = Math.sqrt(T);
