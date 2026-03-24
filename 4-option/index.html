@@ -4239,10 +4239,10 @@ function impliedVol(S, K, T, callPrice) {
   return (lo + hi) / 2;
 }
 
-// Binary-search the most recent IV at or before ts; returns null if no data exists yet for ts
+// Binary-search the most recent IV at or before ts; falls back to oldest known IV for historical data
 function getMntIV(ts) {
   if (!MNT_IV_TICKS.length) return MNT_IV;
-  if (ts < MNT_IV_TICKS[0]) return null; // no IV data this far back
+  if (ts < MNT_IV_TICKS[0]) return MNT_IV_VALUES[0]; // use oldest known IV for historical periods
   let lo = 0, hi = MNT_IV_TICKS.length - 1, idx = 0;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
