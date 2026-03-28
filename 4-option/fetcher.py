@@ -14,6 +14,7 @@ Config (env vars or .env.local):
 """
 
 import os, time, json, urllib.request, urllib.parse, logging
+import db
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -95,14 +96,11 @@ def fetch_bybit_ticker(symbol):
         return None
     return d["result"]["list"][0]
 
-# ── Convex ────────────────────────────────────────────────────────────────────
+# ── SQLite storage ────────────────────────────────────────────────────────────
 def save_to_convex(name, ticks, closes):
     if not ticks:
         return
-    body = {"path": "candles:append",
-            "args": {"name": name, "newTicks": ticks, "newCloses": closes},
-            "format": "json"}
-    post(f"{CONVEX_URL}/api/mutation", body)
+    db.append(name, ticks, closes)
     log.info(f"  saved {len(ticks)} pts → {name}")
 
 # ── State: last fetched timestamps ────────────────────────────────────────────
