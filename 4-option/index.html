@@ -3926,7 +3926,7 @@ const CHARTS = {
   gamma    : makeChart('cGamma',    [ds('Γ ×10⁻⁵','#39d353',[])]),
   theta    : makeChart('cTheta',    [ds('Call Θ','#f85149',[]), ds('Put Θ','#ffa657',[])]),
   vega     : makeChart('cVega',     [ds('Vega','#bc8cff',[])]),
-  iv       : makeChart('cIV',       [ds('DVOL %','#58a6ff',[])]),
+  iv       : makeChart('cIV',       [ds('IV %','#58a6ff',[]), {...ds('Realized Vol %','#ffa657',[]), borderDash:[4,3], borderWidth:1.5}]),
   price    : makeChart('cPrice',    [ds('BTC USD','#f0883e',[])]),
   optPrice : makeChart('cOptPrice', [ds('Call USD','#3fb950',[]), ds('Put USD','#f85149',[])])
 };
@@ -4053,6 +4053,9 @@ function renderCharts(startMs, endMs, res) {
     series.forEach((d, i) => { chart.data.datasets[i].data = d; });
     chart.update();
   }
+  // Clear realized vol dataset when rendering Deribit
+  if (CHARTS.iv.data.datasets[1]) CHARTS.iv.data.datasets[1].data = [];
+  CHARTS.iv.update();
   updateChartTitles();
 }
 
@@ -4260,6 +4263,19 @@ function impliedVol(S, K, T, callPrice) {
   return (lo + hi) / 2;
 }
 
+// 30-day rolling annualized realized volatility (%)
+function calcRealizedVol(closes, i, window) {
+  const w = window || 30;
+  if (i < 1) return null;
+  const n = Math.min(i, w);
+  if (n < 2) return null;
+  const rets = [];
+  for (let j = i - n + 1; j <= i; j++) rets.push(Math.log(closes[j] / closes[j-1]));
+  const mean = rets.reduce((a,b) => a+b, 0) / rets.length;
+  const variance = rets.reduce((a,b) => a + (b-mean)**2, 0) / (rets.length - 1);
+  return +(Math.sqrt(variance * 252) * 100).toFixed(2);
+}
+
 // Binary-search the most recent IV at or before ts; allows 1-day lookahead for daily candles
 function getMntIV(ts) {
   if (!MNT_IV_TICKS.length) return null;
@@ -4280,7 +4296,7 @@ function renderMntAsUnified(startMs, endMs, res) {
   const closes = isMin ? MNT_MIN_CLOSE  : (isDay ? MNT_DAY_CLOSE  : MNT_HOUR_CLOSE);
   if (!ticks.length) return;
 
-  const labels=[], prices=[], callDs=[], putDs=[], gammas=[], callTs=[], putTs=[], vegas=[], ivs=[], callPs=[], putPs=[];
+  const labels=[], prices=[], callDs=[], putDs=[], gammas=[], callTs=[], putTs=[], vegas=[], ivs=[], rvols=[], callPs=[], putPs=[];
   const N2 = x => 0.5*(1+erf(x/Math.SQRT2));
 
   for (let i = 0; i < ticks.length; i++) {
@@ -4310,6 +4326,7 @@ function renderMntAsUnified(startMs, endMs, res) {
     putTs.push(+g.thetaPut.toFixed(5));
     vegas.push(+g.vega.toFixed(5));
     ivs.push(rawIv !== null ? +(rawIv*100).toFixed(2) : null);
+    rvols.push(isDay ? calcRealizedVol(closes, i) : null);
     callPs.push(callP > 0 ? callP : null);
     putPs.push(putP  > 0 ? putP  : null);
   }
@@ -4327,7 +4344,7 @@ function renderMntAsUnified(startMs, endMs, res) {
     [CHARTS.gamma,    labels, sm(gammas)],
     [CHARTS.theta,    labels, sm(callTs), sm(putTs)],
     [CHARTS.vega,     labels, sm(vegas)],
-    [CHARTS.iv,       labels, ivs],
+    [CHARTS.iv,       labels, ivs, rvols],
     [CHARTS.price,    labels, sm(prices)],
     [CHARTS.optPrice, labels, sm(callPs, isMin?6:3), sm(putPs, isMin?6:3)]
   ];
