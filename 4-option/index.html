@@ -4639,28 +4639,32 @@ async function loadBtcContracts() {
   } catch(e) { return {}; }
 }
 
-function saveMntContractsCache(map) {
-  try {
-    localStorage.setItem('mntContractsCache', JSON.stringify({ ts: Date.now(), map }));
-  } catch(e) {}
+// Candidate strikes to probe for expired expirations
+const MNT_PROBE_STRIKES = ['0.5','0.55','0.6','0.62','0.64','0.65','0.66','0.68','0.69',
+  '0.7','0.71','0.72','0.73','0.74','0.75','0.76','0.78','0.8','0.85','0.9','0.95','1.0'];
+
+// Generate "27MAR26"-style label from a Date (UTC)
+function toBybitExpLabel(d) {
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  return `${String(d.getUTCDate()).padStart(2,'0')}${months[d.getUTCMonth()]}${String(d.getUTCFullYear()).slice(-2)}`;
 }
 
-function loadMntContractsCache() {
+// Probe delivery-price for a single symbol; returns delivery entry or null
+async function probeDelivery(sym) {
   try {
-    const raw = localStorage.getItem('mntContractsCache');
-    if (!raw) return {};
-    const { map } = JSON.parse(raw);
-    const now = Date.now();
-    const weekAgo = now - 7 * 24 * 3600 * 1000;
-    // Return only contracts that expired within the past 7 days
-    const result = {};
-    for (const [exp, info] of Object.entries(map)) {
-      if (info.ts < now && info.ts >= weekAgo) {
-        result[exp] = { ...info, expired: true };
-      }
-    }
-    return result;
-  } catch(e) { return {}; }
+    const r = await fetch(`/proxy/bybit/v5/market/delivery-price?category=option&symbol=${encodeURIComponent(sym)}`);
+    const j = await r.json();
+    if (j.retCode === 0 && j.result.list.length) return j.result.list[0];
+  } catch(e) {}
+  return null;
+}
+
+// Discover strikes for an expired expiry label by parallel-probing delivery-price
+async function discoverExpiredStrikes(expLabel) {
+  const results = await Promise.all(
+    MNT_PROBE_STRIKES.map(s => probeDelivery(`MNT-${expLabel}-${s}-C-USDT`))
+  );
+  return MNT_PROBE_STRIKES.filter((_, i) => results[i] !== null);
 }
 
 async function loadMntContracts() {
@@ -4677,15 +4681,34 @@ async function loadMntContracts() {
         if (!map[exp].strikes.includes(strike)) map[exp].strikes.push(strike);
       }
       for (const e of Object.keys(map)) map[e].strikes.sort((a,b) => parseFloat(a)-parseFloat(b));
-      // Save active contracts to cache (including strikes) for future expiry lookup
-      saveMntContractsCache(map);
     }
   } catch(e) {}
-  // Merge in recently expired contracts from localStorage cache
-  const cached = loadMntContractsCache();
-  for (const [exp, info] of Object.entries(cached)) {
-    if (!map[exp]) map[exp] = info; // don't overwrite active
+
+  // Add past 7 days as expired candidates — probe one strike each to confirm existence
+  const now = Date.now();
+  const probes = [];
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(now - i * 24 * 3600 * 1000);
+    const label = toBybitExpLabel(d);
+    if (map[label]) continue; // already in active list
+    const deliveryTs = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 8, 0, 0);
+    probes.push({ label, deliveryTs });
   }
+  if (probes.length) {
+    // Probe 0.7 strike for each candidate date in parallel
+    const checks = await Promise.all(probes.map(p => probeDelivery(`MNT-${p.label}-0.7-C-USDT`)));
+    checks.forEach((res, i) => {
+      if (res) {
+        map[probes[i].label] = {
+          ts: parseInt(res.deliveryTime) || probes[i].deliveryTs,
+          strikes: [],        // filled lazily when user selects this expiry
+          expired: true,
+          strikesLoaded: false
+        };
+      }
+    });
+  }
+
   return map;
 }
 
@@ -4795,8 +4818,14 @@ function populateContractSels() {
   const curStrike = isBybit ? MNT_CALL_SYM.split('-')[2] : STRIKE;
   fillExpirySel('expiry-sel', contracts, curExp);
   fillStrikeSel('strike-sel', contracts[curExp]?.strikes || [], curStrike);
-  document.getElementById('expiry-sel').onchange = e => {
-    fillStrikeSel('strike-sel', contracts[e.target.value]?.strikes || [], null);
+  document.getElementById('expiry-sel').onchange = async e => {
+    const sel = contracts[e.target.value];
+    if (sel?.expired && !sel.strikesLoaded) {
+      fillStrikeSel('strike-sel', ['Loading…'], null);
+      sel.strikes = await discoverExpiredStrikes(e.target.value);
+      sel.strikesLoaded = true;
+    }
+    fillStrikeSel('strike-sel', sel?.strikes || [], null);
   };
 }
 
