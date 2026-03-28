@@ -19,11 +19,11 @@ services:
       - key: CONVEX_URL
         value: https://small-bulldog-987.convex.cloud
       - key: DERIBIT_CALL
-        value: BTC-27MAR26-74000-C
+        value: BTC-10APR26-83000-C
       - key: DERIBIT_PUT
-        value: BTC-27MAR26-74000-P
+        value: BTC-10APR26-83000-P
       - key: MNT_CALL
-        value: MNT-27MAR26-0.76-C-USDT
+        value: MNT-10APR26-0.7-C-USDT
 
 workers:
   - name: fetcher
@@ -40,8 +40,8 @@ workers:
       - key: CONVEX_URL
         value: https://small-bulldog-987.convex.cloud
       - key: DERIBIT_CALL
-        value: BTC-27MAR26-74000-C
+        value: BTC-10APR26-83000-C
       - key: DERIBIT_PUT
-        value: BTC-27MAR26-74000-P
+        value: BTC-10APR26-83000-P
       - key: MNT_CALL
-        value: MNT-27MAR26-0.76-C-USDT
+        value: MNT-10APR26-0.7-C-USDT

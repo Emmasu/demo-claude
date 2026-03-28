@@ -36,9 +36,9 @@ DERIBIT_BASE = "https://www.deribit.com"
 BYBIT_BASE   = "https://api.bybit.com"
 
 DERIBIT_BTC  = "BTC-PERPETUAL"
-DERIBIT_CALL = os.environ.get("DERIBIT_CALL", "BTC-27MAR26-74000-C")
-DERIBIT_PUT  = os.environ.get("DERIBIT_PUT",  "BTC-27MAR26-74000-P")
-MNT_CALL     = os.environ.get("MNT_CALL",     "MNT-27MAR26-0.76-C-USDT")
+DERIBIT_CALL = os.environ.get("DERIBIT_CALL", "BTC-10APR26-83000-C")
+DERIBIT_PUT  = os.environ.get("DERIBIT_PUT",  "BTC-10APR26-83000-P")
+MNT_CALL     = os.environ.get("MNT_CALL",     "MNT-10APR26-0.7-C-USDT")
 MNT_SPOT     = "MNTUSDT"
 
 INTERVAL_SEC = 60

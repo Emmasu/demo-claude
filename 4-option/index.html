@@ -77,7 +77,7 @@
 <body>
 
 <h1 id="main-title">Options Greeks — Bybit · MNT</h1>
-<div class="subtitle" id="main-subtitle">MNT-27MAR26-0.76 &nbsp;|&nbsp; Strike $0.76 &nbsp;|&nbsp; Expiry 27MAR26 &nbsp;|&nbsp; Bybit</div>
+<div class="subtitle" id="main-subtitle">MNT-10APR26-0.7 &nbsp;|&nbsp; Strike $0.70 &nbsp;|&nbsp; Expiry 10APR26 &nbsp;|&nbsp; Bybit</div>
 <div class="contract-bar">
   <span class="tp-label">Exchange:</span>
   <select id="exch-sel" class="contract-sel">
@@ -3691,8 +3691,8 @@ function rebuildMinMaps() {
 
 // ── Live data fetch & accumulation ───────────────────────────────────────────
 const LIVE_BTC  = 'BTC-PERPETUAL';
-let LIVE_CALL = 'BTC-20MAR26-74000-C';
-let LIVE_PUT  = 'BTC-20MAR26-74000-P';
+let LIVE_CALL = 'BTC-10APR26-83000-C';
+let LIVE_PUT  = 'BTC-10APR26-83000-P';
 const LIVE_DVOL = 'BTC_DVOL';
 
 async function fetchCandles(instrument, resolution, startMs, endMs) {
@@ -4145,9 +4145,9 @@ document.getElementById('tp-apply').addEventListener('click', () => {
 // ── Stat boxes — default Bybit, populated by first fetchAndMergeMnt() ─────────
 
 // ── MNT Options config (Bybit) ────────────────────────────────────────────────
-let MNT_STRIKE   = 0.76;
-let MNT_EXPIRY   = new Date('2026-03-27T08:00:00Z').getTime();
-let MNT_CALL_SYM = 'MNT-27MAR26-0.76-C-USDT';
+let MNT_STRIKE   = 0.7;
+let MNT_EXPIRY   = new Date('2026-04-10T08:00:00Z').getTime();
+let MNT_CALL_SYM = 'MNT-10APR26-0.7-C-USDT';
 let MNT_PUT_SYM  = 'MNT-27MAR26-0.76-P-USDT';
 
 let MNT_MIN_TICKS  = [], MNT_MIN_CLOSE  = [];
