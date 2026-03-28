@@ -127,10 +127,10 @@
   <div class="chart-card" style="grid-column: span 2;"><h2 id="opt-price-title">Option Mark Price — USDT (Call &amp; Put, MNT-27MAR26-0.76)</h2><canvas id="cOptPrice" style="max-height:220px;"></canvas></div>
   <div class="chart-card"><h2 id="price-chart-title">MNT Spot Price (USDT)</h2><canvas id="cPrice"></canvas></div>
   <div class="chart-card"><h2 id="iv-chart-title">Implied Volatility (DVOL %)</h2><canvas id="cIV"></canvas></div>
-  <div class="chart-card"><h2>Gamma (Γ)</h2><canvas id="cGamma"></canvas></div>
-  <div class="chart-card"><h2>Vega (V) — USD per 1% IV</h2><canvas id="cVega"></canvas></div>
-  <div class="chart-card"><h2>Theta (Θ) — USD / day</h2><canvas id="cTheta"></canvas></div>
-  <div class="chart-card"><h2>Delta (Δ) — Call &amp; Put</h2><canvas id="cDelta"></canvas></div>
+  <div class="chart-card"><h2 id="gamma-chart-title">Gamma (Γ)</h2><canvas id="cGamma"></canvas></div>
+  <div class="chart-card"><h2 id="vega-chart-title">Vega (V) — USD per 1% IV</h2><canvas id="cVega"></canvas></div>
+  <div class="chart-card"><h2 id="theta-chart-title">Theta (Θ) — USD / day</h2><canvas id="cTheta"></canvas></div>
+  <div class="chart-card"><h2 id="delta-chart-title">Delta (Δ) — Call &amp; Put</h2><canvas id="cDelta"></canvas></div>
 </div>
 
 <div id="footer">Data fetched from Deribit · Refreshed 2026-03-18 12:29 UTC · 30d hourly (721 pts) · 3d 1-min (4321 pts)</div>
@@ -3976,6 +3976,25 @@ allCharts().forEach(chart => {
 let currentRes = 'min';      // 'hour' | 'min'
 let currentExchange = 'bybit'; // 'deribit' | 'bybit'
 
+function updateChartTitles() {
+  const isBybit = currentExchange === 'bybit';
+  const contract = isBybit
+    ? MNT_CALL_SYM.replace('-C-USDT', '')
+    : LIVE_CALL.replace('-C', '');
+  const titles = {
+    'gamma-chart-title': `Gamma (Γ) | ${contract}`,
+    'vega-chart-title':  `Vega (V) — USD per 1% IV | ${contract}`,
+    'theta-chart-title': `Theta (Θ) — USD / day | ${contract}`,
+    'delta-chart-title': `Delta (Δ) — Call & Put | ${contract}`,
+    'iv-chart-title':    isBybit ? `Implied Volatility (IV %) | ${contract}` : `Implied Volatility (DVOL %) | ${contract}`,
+    'price-chart-title': isBybit ? `MNT Spot Price (USDT) | ${contract}` : `BTC Price (USD) | ${contract}`,
+  };
+  for (const [id, text] of Object.entries(titles)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+}
+
 function renderCharts(startMs, endMs, res) {
   if (currentExchange === 'bybit') { renderMntAsUnified(startMs, endMs, res); return; }
   res = res || currentRes;
@@ -4033,6 +4052,7 @@ function renderCharts(startMs, endMs, res) {
     series.forEach((d, i) => { chart.data.datasets[i].data = d; });
     chart.update();
   }
+  updateChartTitles();
 }
 
 // ── Time picker logic ─────────────────────────────────────────────────────────
@@ -4318,10 +4338,7 @@ function renderMntAsUnified(startMs, endMs, res) {
   const expLabel = MNT_CALL_SYM.split('-')[1];
   const el = document.getElementById('opt-price-title');
   if (el) el.textContent = `Option Mark Price — USDT (Call & Put, MNT-${expLabel}-${MNT_STRIKE})`;
-  const ivEl = document.getElementById('iv-chart-title');
-  if (ivEl) ivEl.textContent = 'Implied Volatility (IV %)';
-  const prEl = document.getElementById('price-chart-title');
-  if (prEl) prEl.textContent = 'MNT Spot Price (USDT)';
+  updateChartTitles();
 }
 
 async function backfillMntHour() {
