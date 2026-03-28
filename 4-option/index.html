@@ -4260,10 +4260,10 @@ function impliedVol(S, K, T, callPrice) {
   return (lo + hi) / 2;
 }
 
-// Binary-search the most recent IV at or before ts; falls back to oldest known IV for historical data
+// Binary-search the most recent IV at or before ts; allows 1-day lookahead for daily candles
 function getMntIV(ts) {
-  if (!MNT_IV_TICKS.length) return MNT_IV;
-  if (ts < MNT_IV_TICKS[0]) return MNT_IV_VALUES[0]; // use oldest known IV for historical periods
+  if (!MNT_IV_TICKS.length) return null;
+  if (ts < MNT_IV_TICKS[0] - 86400000) return null; // no real IV data this far back
   let lo = 0, hi = MNT_IV_TICKS.length - 1, idx = 0;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
@@ -4289,8 +4289,10 @@ function renderMntAsUnified(startMs, endMs, res) {
     const S  = closes[i];
     const T  = (MNT_EXPIRY - ts) / (365.25*24*3600*1000);
     if (T <= 0) continue;
-    const iv = getMntIV(ts);
-    if (iv === null) continue; // no IV data for this period
+    const rawIv = getMntIV(ts);
+    // Use fallback IV for Greeks so charts render historically; IV chart gets null for unknown periods
+    const fallbackIv = MNT_IV_VALUES.length ? MNT_IV_VALUES[0] : MNT_IV;
+    const iv = rawIv !== null ? rawIv : fallbackIv;
     const g  = greeks(S, MNT_STRIKE, T, 0, iv);
     if (!g) continue;
     const sq = Math.sqrt(T);
@@ -4307,7 +4309,7 @@ function renderMntAsUnified(startMs, endMs, res) {
     callTs.push(+g.thetaCall.toFixed(5));
     putTs.push(+g.thetaPut.toFixed(5));
     vegas.push(+g.vega.toFixed(5));
-    ivs.push(+(iv*100).toFixed(2));
+    ivs.push(rawIv !== null ? +(rawIv*100).toFixed(2) : null);
     callPs.push(callP > 0 ? callP : null);
     putPs.push(putP  > 0 ? putP  : null);
   }
@@ -4424,7 +4426,7 @@ async function fetchAndMergeMnt() {
     const interval = isMin ? 1 : (isDay ? 'D' : 60);
     const [kline, markKline] = await Promise.all([
       fetchBybitKline('MNTUSDT', interval, 1000),
-      isDay ? Promise.resolve(null) : fetchBybitMarkPriceKline(MNT_CALL_SYM, interval, 1000),
+      fetchBybitMarkPriceKline(MNT_CALL_SYM, isDay ? 'D' : interval, isDay ? 200 : 1000),
     ]);
     if (kline) {
       if (isMin) {
@@ -4450,8 +4452,8 @@ async function fetchAndMergeMnt() {
 
     // Compute IV history from option mark price + spot price via BS inversion
     if (markKline) {
-      const spotTks = isMin ? MNT_MIN_TICKS : MNT_HOUR_TICKS;
-      const spotCls = isMin ? MNT_MIN_CLOSE : MNT_HOUR_CLOSE;
+      const spotTks = isMin ? MNT_MIN_TICKS : (isDay ? MNT_DAY_TICKS : MNT_HOUR_TICKS);
+      const spotCls = isMin ? MNT_MIN_CLOSE : (isDay ? MNT_DAY_CLOSE : MNT_HOUR_CLOSE);
       const spotMap = new Map();
       for (let i = 0; i < spotTks.length; i++) spotMap.set(spotTks[i], spotCls[i]);
       const newIvTks = [], newIvVals = [];
