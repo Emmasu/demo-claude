@@ -4639,31 +4639,53 @@ async function loadBtcContracts() {
   } catch(e) { return {}; }
 }
 
+function saveMntContractsCache(map) {
+  try {
+    localStorage.setItem('mntContractsCache', JSON.stringify({ ts: Date.now(), map }));
+  } catch(e) {}
+}
+
+function loadMntContractsCache() {
+  try {
+    const raw = localStorage.getItem('mntContractsCache');
+    if (!raw) return {};
+    const { map } = JSON.parse(raw);
+    const now = Date.now();
+    const weekAgo = now - 7 * 24 * 3600 * 1000;
+    // Return only contracts that expired within the past 7 days
+    const result = {};
+    for (const [exp, info] of Object.entries(map)) {
+      if (info.ts < now && info.ts >= weekAgo) {
+        result[exp] = { ...info, expired: true };
+      }
+    }
+    return result;
+  } catch(e) { return {}; }
+}
+
 async function loadMntContracts() {
   const map = {};
-  const addInstruments = (list, expired) => {
-    for (const inst of (list || [])) {
-      if (inst.optionsType !== 'Call') continue;
-      const parts = inst.symbol.split('-');
-      const exp = parts[1], strike = parts[2];
-      map[exp] = map[exp] || { ts: parseInt(inst.deliveryTime), strikes: [], expired: !!expired };
-      if (!map[exp].strikes.includes(strike)) map[exp].strikes.push(strike);
-    }
-  };
   try {
-    // Active contracts
-    const r1 = await fetch('/proxy/bybit/v5/market/instruments-info?category=option&baseCoin=MNT&limit=500');
-    const j1 = await r1.json();
-    if (j1.retCode === 0) addInstruments(j1.result.list, false);
-    // Recently expired contracts (past 7 days)
-    const r2 = await fetch('/proxy/bybit/v5/market/instruments-info?category=option&baseCoin=MNT&status=Closed&limit=500');
-    const j2 = await r2.json();
-    if (j2.retCode === 0) {
-      const cutoff = Date.now() - 7 * 24 * 3600 * 1000;
-      addInstruments((j2.result.list || []).filter(i => parseInt(i.deliveryTime) >= cutoff), true);
+    const r = await fetch('/proxy/bybit/v5/market/instruments-info?category=option&baseCoin=MNT&limit=500');
+    const j = await r.json();
+    if (j.retCode === 0) {
+      for (const inst of (j.result.list || [])) {
+        if (inst.optionsType !== 'Call') continue;
+        const parts = inst.symbol.split('-');
+        const exp = parts[1], strike = parts[2];
+        map[exp] = map[exp] || { ts: parseInt(inst.deliveryTime), strikes: [], expired: false };
+        if (!map[exp].strikes.includes(strike)) map[exp].strikes.push(strike);
+      }
+      for (const e of Object.keys(map)) map[e].strikes.sort((a,b) => parseFloat(a)-parseFloat(b));
+      // Save active contracts to cache (including strikes) for future expiry lookup
+      saveMntContractsCache(map);
     }
   } catch(e) {}
-  for (const e of Object.keys(map)) map[e].strikes.sort((a,b) => parseFloat(a)-parseFloat(b));
+  // Merge in recently expired contracts from localStorage cache
+  const cached = loadMntContractsCache();
+  for (const [exp, info] of Object.entries(cached)) {
+    if (!map[exp]) map[exp] = info; // don't overwrite active
+  }
   return map;
 }
 
