@@ -4640,21 +4640,31 @@ async function loadBtcContracts() {
 }
 
 async function loadMntContracts() {
-  try {
-    const r = await fetch('/proxy/bybit/v5/market/instruments-info?category=option&baseCoin=MNT&limit=500');
-    const j = await r.json();
-    if (j.retCode !== 0) return {};
-    const map = {};
-    for (const inst of (j.result.list || [])) {
+  const map = {};
+  const addInstruments = (list, expired) => {
+    for (const inst of (list || [])) {
       if (inst.optionsType !== 'Call') continue;
       const parts = inst.symbol.split('-');
-      const exp = parts[1], strike = parts[2]; // keep strike as string
-      map[exp] = map[exp] || { ts: parseInt(inst.deliveryTime), strikes: [] };
+      const exp = parts[1], strike = parts[2];
+      map[exp] = map[exp] || { ts: parseInt(inst.deliveryTime), strikes: [], expired: !!expired };
       if (!map[exp].strikes.includes(strike)) map[exp].strikes.push(strike);
     }
-    for (const e of Object.keys(map)) map[e].strikes.sort((a,b) => parseFloat(a)-parseFloat(b));
-    return map;
-  } catch(e) { return {}; }
+  };
+  try {
+    // Active contracts
+    const r1 = await fetch('/proxy/bybit/v5/market/instruments-info?category=option&baseCoin=MNT&limit=500');
+    const j1 = await r1.json();
+    if (j1.retCode === 0) addInstruments(j1.result.list, false);
+    // Recently expired contracts (past 7 days)
+    const r2 = await fetch('/proxy/bybit/v5/market/instruments-info?category=option&baseCoin=MNT&status=Closed&limit=500');
+    const j2 = await r2.json();
+    if (j2.retCode === 0) {
+      const cutoff = Date.now() - 7 * 24 * 3600 * 1000;
+      addInstruments((j2.result.list || []).filter(i => parseInt(i.deliveryTime) >= cutoff), true);
+    }
+  } catch(e) {}
+  for (const e of Object.keys(map)) map[e].strikes.sort((a,b) => parseFloat(a)-parseFloat(b));
+  return map;
 }
 
 function fillExpirySel(selId, contracts, curExp) {
@@ -4662,7 +4672,9 @@ function fillExpirySel(selId, contracts, curExp) {
   sel.innerHTML = '';
   Object.keys(contracts).sort((a,b) => contracts[a].ts - contracts[b].ts).forEach(exp => {
     const o = document.createElement('option');
-    o.value = exp; o.textContent = exp;
+    o.value = exp;
+    o.textContent = contracts[exp].expired ? `${exp} (expired)` : exp;
+    if (contracts[exp].expired) o.style.color = '#6e7681';
     if (exp === curExp) o.selected = true;
     sel.appendChild(o);
   });
