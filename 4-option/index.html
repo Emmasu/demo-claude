@@ -3660,6 +3660,7 @@ async function loadFromConvex() {
     } else if (currentRes === 'min' && currentExchange === 'deribit' && MIN_BTC_TICKS.length) {
       renderCharts(MIN_BTC_TICKS[0], MIN_BTC_TICKS[MIN_BTC_TICKS.length - 1], 'min');
     }
+    updateChartTitles();
     updateFooter();
   } catch(e) { console.error('loadFromConvex:', e); }
 }
@@ -4597,6 +4598,7 @@ document.getElementById('btn-fetch30d').addEventListener('click', async function
 const _initEnd   = MIN_BTC_TICKS[MIN_BTC_TICKS.length - 1];
 const _initStart = Math.max(MIN_BTC_TICKS[0], _initEnd - 1 * 24 * 3600 * 1000);
 renderCharts(_initStart, _initEnd, 'min');
+updateChartTitles();
 updateFooter();
 
 // ── Contract selector ─────────────────────────────────────────────────────────
