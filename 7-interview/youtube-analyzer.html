@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Meeting Analyzer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --warn: #ffd166;
+      --text: #e2e8f0;
+      --muted: #7c8ba0;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container { max-width: 920px; margin: 0 auto; }
+
+    /* ── Header ── */
+    header { text-align: center; margin-bottom: 2.5rem; }
+    header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    header p { color: var(--muted); margin-top: .4rem; font-size: .95rem; }
+
+    /* ── Input ── */
+    .input-row { display: flex; gap: .75rem; margin-bottom: 1rem; }
+    .input-row input {
+      flex: 1; padding: .8rem 1.1rem; border-radius: var(--radius);
+      border: 1.5px solid var(--border); background: var(--surface);
+      color: var(--text); font-size: 1rem; outline: none; transition: border .2s;
+    }
+    .input-row input:focus { border-color: var(--accent); }
+    .input-row button {
+      padding: .8rem 1.6rem; border-radius: var(--radius); border: none;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: opacity .2s, transform .1s;
+    }
+    .input-row button:hover { opacity: .9; }
+    .input-row button:active { transform: scale(.97); }
+    .input-row button:disabled { opacity: .5; cursor: not-allowed; }
+
+    .hint { font-size: .8rem; color: var(--muted); text-align: center; margin-bottom: 2rem; }
+    .hint a { color: var(--accent); text-decoration: none; }
+
+    /* ── Status / Error ── */
+    #status {
+      display: none; text-align: center; padding: 2rem;
+      color: var(--muted); font-size: .95rem;
+    }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .8s linear infinite; margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #error {
+      display: none; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3);
+      border-radius: var(--radius); padding: 1rem 1.2rem; color: #f87171;
+      margin-bottom: 1.5rem; font-size: .92rem;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.4rem 1.6rem; margin-bottom: 1.4rem;
+    }
+    .card-title {
+      font-size: .7rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 1rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .card-title .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    }
+
+    /* ── Summary bullets ── */
+    .summary-list { list-style: none; display: flex; flex-direction: column; gap: .6rem; }
+    .summary-list li {
+      display: flex; gap: .7rem; align-items: flex-start;
+      font-size: .95rem; line-height: 1.55;
+    }
+    .summary-list li::before {
+      content: '›'; color: var(--accent2); font-size: 1.2rem; line-height: 1.3; flex-shrink: 0;
+    }
+
+    /* ── Speakers ── */
+    .speakers { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .speaker-chip {
+      padding: .35rem .85rem; border-radius: 999px; font-size: .82rem;
+      font-weight: 600; color: #fff; display: flex; align-items: center; gap: .4rem;
+    }
+    .speaker-chip .pct { opacity: .75; font-weight: 400; }
+
+    /* Speaker colors */
+    .sc0 { background: #6c63ff; } .sc1 { background: #00d4aa; }
+    .sc2 { background: #f97316; } .sc3 { background: #ec4899; }
+    .sc4 { background: #a78bfa; } .sc5 { background: #22d3ee; }
+    .sc6 { background: #84cc16; } .sc7 { background: #fb923c; }
+
+    /* ── Transcript ── */
+    .transcript-controls {
+      display: flex; justify-content: flex-end; margin-bottom: .8rem;
+    }
+    .copy-btn {
+      font-size: .78rem; padding: .3rem .8rem; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--muted); cursor: pointer; transition: color .2s, border-color .2s;
+    }
+    .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+
+    .transcript-body { font-size: .9rem; line-height: 1.7; }
+    .turn {
+      margin-bottom: 1rem; border-radius: 8px; padding: .4rem .6rem;
+      border-left: 3px solid transparent; transition: background .2s, border-color .2s;
+    }
+    .turn.active {
+      background: rgba(108,99,255,.1);
+      border-left-color: var(--accent);
+    }
+    .word { display: inline; cursor: default; border-radius: 3px; padding: 0 1px; }
+    .word.active-word {
+      font-size: 1.18em;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(108,99,255,.35);
+      border-radius: 4px;
+      padding: 0 3px;
+      display: inline-block;
+      line-height: 1.4;
+    }
+    .turn-header {
+      display: flex; align-items: center; gap: .5rem; margin-bottom: .25rem;
+    }
+    .turn-speaker {
+      font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; padding: .15rem .55rem;
+      border-radius: 4px; color: #fff; cursor: pointer;
+    }
+    .turn-time {
+      font-size: .72rem; color: var(--muted); cursor: pointer;
+      text-decoration: underline dotted; text-underline-offset: 2px;
+    }
+    .turn-time:hover { color: var(--accent); }
+    .turn-text { color: var(--text); padding-left: .2rem; }
+
+    /* ── Vocabulary highlights ── */
+    .vocab-word {
+      background: rgba(255,209,102,.18); color: var(--warn);
+      border-bottom: 1.5px solid var(--warn); border-radius: 2px;
+      cursor: help; padding: 0 1px; position: relative;
+    }
+    .vocab-word:hover .vocab-tip {
+      display: block;
+    }
+    .vocab-tip {
+      display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+      transform: translateX(-50%); background: #1e2235;
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: .5rem .8rem; font-size: .78rem; color: var(--text);
+      white-space: nowrap; z-index: 99; pointer-events: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    }
+
+    /* ── Vocab grid ── */
+    .vocab-grid { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .vocab-tag {
+      background: rgba(255,209,102,.1); border: 1px solid rgba(255,209,102,.25);
+      color: var(--warn); border-radius: 6px; padding: .3rem .7rem;
+      font-size: .8rem; font-weight: 500; display: inline-flex; align-items: center; gap: .35rem;
+    }
+    .vocab-tag-remove { cursor: pointer; opacity: .5; font-size: .9em; line-height: 1; }
+    .vocab-tag-remove:hover { opacity: 1; }
+    .vocab-tag.user-saved { background: rgba(255,209,102,.18); border-color: rgba(255,209,102,.5); }
+
+    /* ── Selection popup ── */
+    #selectionPopup {
+      position: fixed; z-index: 300; display: none;
+      background: var(--surface2); border: 1px solid var(--accent);
+      border-radius: 8px; padding: .35rem .65rem;
+      font-size: .8rem; color: var(--accent); cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,.4);
+      white-space: nowrap; user-select: none;
+      transition: opacity .1s;
+    }
+    #selectionPopup:hover { background: color-mix(in srgb, var(--accent) 15%, var(--surface2)); }
+
+    /* ── History panel ── */
+    .history-card { margin-bottom: 1.2rem; }
+    .history-count {
+      margin-left: .4rem; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 999px;
+      font-size: .68rem; padding: .1rem .5rem; color: var(--muted);
+      font-weight: 600; letter-spacing: .04em;
+    }
+    .history-chevron { margin-left: auto; font-size: .8rem; color: var(--muted); transition: transform .2s; }
+    .history-chevron.open { transform: rotate(180deg); }
+    .history-list { display: none; margin-top: .8rem; display: flex; flex-direction: column; gap: .5rem; }
+    .history-list.collapsed { display: none; }
+    .history-item {
+      display: flex; align-items: center; gap: .8rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: .65rem .9rem; cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .history-item:hover { border-color: #a78bfa; background: rgba(167,139,250,.08); }
+    .history-item.active-history { border-color: #a78bfa; background: rgba(167,139,250,.12); }
+    .history-info { flex: 1; min-width: 0; }
+    .history-title {
+      font-size: .88rem; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .history-meta { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .history-del {
+      flex-shrink: 0; background: none; border: none; color: var(--muted);
+      font-size: 1rem; cursor: pointer; padding: .2rem .4rem; border-radius: 4px;
+      transition: color .15s, background .15s;
+    }
+    .history-del:hover { color: #f87171; background: rgba(248,113,113,.12); }
+
+    /* ── Audio player ── */
+    /* ── Sticky bottom player ── */
+    #stickyPlayer {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid var(--border);
+      padding: .6rem 1.5rem .7rem;
+    }
+    .sticky-inner { max-width: 860px; margin: 0 auto; }
+    body { padding-bottom: 110px; }
+
+    .player-wrap {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: .75rem 1rem;
+      min-height: 52px; display: flex; align-items: center;
+    }
+    .player-loading { display: flex; align-items: center; gap: .6rem; color: var(--muted); font-size: .85rem; }
+    .player-spinner {
+      width: 18px; height: 18px; border: 2px solid var(--border);
+      border-top-color: var(--accent2); border-radius: 50%;
+      animation: spin .7s linear infinite; flex-shrink: 0;
+    }
+    #audioPlayer {
+      width: 100%; height: 36px;
+      accent-color: var(--accent);
+    }
+    /* Chromium custom scrollbar on audio — force dark */
+    #audioPlayer::-webkit-media-controls-panel { background: var(--surface2); }
+
+    /* ── Save bar ── */
+    .audio-mode-row { display: flex; gap: .5rem; margin-bottom: .75rem; }
+    .mode-btn { padding: .35rem .9rem; border-radius: 999px; border: 1.5px solid var(--border); background: transparent; color: var(--muted); font-size: .8rem; cursor: pointer; transition: all .15s; }
+    .mode-btn.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .mode-btn:hover:not(.active) { border-color: var(--text); color: var(--text); }
+    .save-row { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .save-btn {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .6rem 1.2rem; border-radius: 8px; border: 1.5px solid var(--border);
+      background: var(--surface2); color: var(--text); font-size: .88rem;
+      font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .save-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .save-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .save-btn .fmt { color: var(--muted); font-weight: 400; font-size: .78rem; }
+    .save-txt:hover  { border-color: var(--accent2); color: var(--accent2); }
+    .save-audio:hover { border-color: #ec4899; color: #ec4899; }
+    .save-audio:disabled { border-color: var(--border) !important; color: var(--muted) !important; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .saving { animation: pulse .9s ease-in-out infinite; }
+
+    /* ── Utilities ── */
+    #results { display: none; }
+    .hidden { display: none !important; }
+    .tag-new {
+      font-size: .65rem; background: var(--accent2); color: #000;
+      border-radius: 4px; padding: .1rem .35rem; font-weight: 700; margin-left: .3rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>YouTube Meeting Analyzer</h1>
+    <p>Transcript · Speaker Detection · Summary · Advanced Vocabulary</p>
+  </header>
+
+  <div class="input-row">
+    <input id="urlInput" type="text" placeholder="Paste a YouTube URL..."
+           value="https://www.youtube.com/watch?v=MpwfiqHd6i4" />
+    <button id="analyzeBtn" onclick="analyze()">Analyze</button>
+  </div>
+  <p class="hint">Fetches the official YouTube captions — no upload needed.</p>
+
+  <!-- History panel -->
+  <div id="historyCard" class="card history-card" style="display:none">
+    <div class="card-title" style="cursor:pointer" onclick="toggleHistory()">
+      <span class="dot" style="background:#a78bfa"></span>
+      History
+      <span id="historyCount" class="history-count"></span>
+      <span id="historyChevron" class="history-chevron">▾</span>
+    </div>
+    <div id="historyList" class="history-list"></div>
+  </div>
+
+  <div id="error"></div>
+  <div id="status"><div class="spinner"></div><span id="statusText">Loading…</span></div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <!-- Audio player + save bar -->
+    <div class="card save-bar">
+      <div class="card-title"><span class="dot" style="background:#ec4899"></span>Audio Player &amp; Save</div>
+
+      <!-- Save buttons -->
+      <div class="save-row">
+        <button class="save-btn save-txt" onclick="saveTranscript()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Save Transcript <span class="fmt">.txt</span>
+        </button>
+        <button class="save-btn save-audio" id="saveAudioBtn" onclick="saveAudio()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <span id="saveAudioLabel">Save Audio</span> <span class="fmt">.m4a</span>
+        </button>
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Full Transcript</div>
+      <div class="transcript-controls">
+        <button class="copy-btn" onclick="copyTranscript()">Copy plain text</button>
+      </div>
+      <div class="transcript-body" id="transcriptBody"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--warn)"></span>Advanced Vocabulary <span class="tag-new">highlight</span></div>
+      <div class="vocab-grid" id="vocabGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────
+   ADVANCED VOCABULARY  (≈300 GRE / academic / business words)
+───────────────────────────────────────────────────────────────── */
+const VOCAB = {
+  abate:"to reduce in intensity",abscond:"to leave hurriedly and secretly",
+  acrimonious:"angry and bitter",admonish:"to warn or reprimand",
+  alacrity:"eager willingness",alleviate:"to make suffering less severe",
+  allocate:"to distribute resources officially",ambiguous:"open to more than one interpretation",
+  ameliorate:"to make something bad less serious",anomaly:"something deviating from the norm",
+  arbitrary:"based on random choice rather than reason",articulate:"to express ideas clearly",
+  assertion:"a confident statement of fact",assimilate:"to absorb and integrate",
+  attribute:"to regard as resulting from a cause",autonomous:"acting independently",
+  benchmark:"a standard or reference point",capitalize:"to take advantage of",
+  catalyst:"something that speeds up a process",coherent:"logical and consistent",
+  collaborate:"to work jointly on an activity",compensate:"to recompense for loss",
+  complement:"to add to so as to enhance",comprehensive:"covering all aspects",
+  conceptual:"relating to concepts or ideas",concurrent:"existing at the same time",
+  constraint:"a limiting condition",contemplate:"to think deeply about",
+  contradict:"to assert the opposite of",controversial:"giving rise to disagreement",
+  correlate:"to have a mutual relationship",culminate:"to reach a final point",
+  deduce:"to reach a conclusion by reasoning",delineate:"to describe precisely",
+  deploy:"to bring into effective action",deviate:"to depart from an established course",
+  discern:"to perceive or recognize",discourse:"written or spoken communication",
+  dissonance:"lack of harmony or agreement",distinguish:"to recognize as distinct",
+  diversify:"to make more varied",elaborate:"to develop or present in detail",
+  eliminate:"to completely remove or get rid of",emphasize:"to give special importance to",
+  encompass:"to include comprehensively",enumerate:"to list items one by one",
+  equivocal:"ambiguous; uncertain",escalate:"to increase rapidly",
+  evaluate:"to form an idea of the quality of",exacerbate:"to make worse",
+  expedite:"to make an action happen sooner",explicit:"stated clearly and in detail",
+  facilitate:"to make an action easier",fluctuate:"to rise and fall irregularly",
+  formulate:"to create or prepare systematically",framework:"a basic structure underlying a concept",
+  fundamental:"forming a necessary base",generate:"to produce or create",
+  hypothesis:"a proposed explanation",illuminate:"to help clarify",
+  implement:"to put into effect",implicit:"implied though not plainly stated",
+  indicate:"to point out or show",infrastructure:"the basic systems of a country or organization",
+  inherent:"existing as a natural part",integrate:"to combine one thing with another",
+  invoke:"to call on for authority",iterate:"to perform repeatedly",
+  justify:"to show adequate ground for",leverage:"to use something to maximum advantage",
+  mandate:"an official order",mitigate:"to lessen the gravity of",
+  navigate:"to plan and direct a course",optimize:"to make the best use of",
+  paradigm:"a typical example or pattern",perpetuate:"to make something continue indefinitely",
+  pivot:"to turn on or as if on a pivot",preliminary:"preceding the main action",
+  prioritize:"to designate something as most important",proactive:"creating or controlling a situation",
+  proliferate:"to increase rapidly in number",protocol:"a set of rules governing behavior",
+  quantify:"to express or measure as a quantity",resilient:"able to recover quickly",
+  robust:"strong and healthy; vigorous",scrutinize:"to examine or inspect closely",
+  strategic:"relating to the identification of long-term goals",streamline:"to make more efficient",
+  substantiate:"to provide evidence for",synthesize:"to combine elements into a whole",
+  systematic:"done according to a fixed plan",tactical:"relating to a carefully planned strategy",
+  validate:"to demonstrate the validity of",viable:"capable of working successfully",
+  unprecedented:"never done or known before",innovative:"featuring new methods or ideas",
+  disruptive:"causing disruption; innovative in a way that changes the status quo",
+  scalable:"able to be changed in size or scale",iteration:"a new version or repetition of a process",
+  holistic:"treating the whole rather than just parts",empower:"to give authority or power to",
+  bandwidth:"capacity to handle a heavy workload",synergy:"interaction producing a combined effect greater than the sum of parts",
+  ecosystem:"a complex network of interdependencies",granular:"detailed; precise at a fine level",
+  heuristic:"enabling discovery or problem-solving by trial and error",
+  ambiguity:"the quality of being open to multiple interpretations",
+  actionable:"able to be acted on",trajectory:"the path followed by something",
+  cohesive:"united and forming a whole",traction:"the extent to which something gains popularity",
+  incentivize:"to motivate with a reward",benchmark:"a point of reference",
+  cadence:"a rhythmic sequence or flow",decentralize:"to transfer authority away from a center",
+  deliverable:"something that can be provided as a result of a process",
+  methodology:"a system of methods used in a field",nuanced:"characterized by subtle distinctions",
+  opaque:"not transparent; hard to understand",rigorous:"extremely thorough",
+  stakeholder:"a person with an interest in an enterprise",transparency:"openness and accountability",
+  unequivocal:"leaving no doubt; clear",vernacular:"the language of a particular group",
+  advocate:"to publicly recommend or support",aggregate:"formed by combining several elements",
+  analogous:"comparable in certain respects",assertion:"a confident declaration",
+  catalyst:"a person or thing that causes change",coherent:"forming a unified whole",
+  consolidate:"to combine into a single unit",contingency:"a future event that may occur",
+  credibility:"the quality of being trusted and believed",diagnose:"to identify the nature of a problem",
+  differentiate:"to recognize what makes something distinct",dynamic:"characterized by constant change",
+  efficacy:"the ability to produce a desired result",empirical:"based on observation and experiment",
+  endemic:"regularly found among particular people",equilibrium:"a state of balance",
+  extrapolate:"to extend conclusions beyond data",feasible:"possible and practical to achieve",
+  hierarchical:"arranged in order of rank",inclusive:"not excluding any group",
+  integrity:"the quality of being honest",intrinsic:"belonging naturally to something",
+  leverage:"use borrowed capital for investment",lucrative:"producing a great deal of profit",
+  meticulous:"showing great attention to detail",mitigate:"to lessen in force or intensity",
+  multifaceted:"having many different aspects",operationalize:"to put into operation",
+  orchestrate:"to plan or coordinate skillfully",oversee:"to supervise",
+  pragmatic:"dealing with things sensibly and practically",proponent:"a person who advocates",
+  remediate:"to correct a deficiency or problem",retrospective:"looking back at the past",
+  salient:"most noticeable or important",standardize:"to cause to conform to a standard",
+  tangible:"clear and definite; real",ubiquitous:"present everywhere simultaneously",
+  unprecedented:"never done before",iterate:"to repeat a process with aim of improving"
+};
+
+const VOCAB_KEYS = Object.keys(VOCAB).sort((a,b)=>b.length-a.length);
+
+/* ─────────────────────────────────────────────────────────────────
+   SPEAKER COLORS
+───────────────────────────────────────────────────────────────── */
+const SPEAKER_COLORS = ['#6c63ff','#00d4aa','#f97316','#ec4899','#a78bfa','#22d3ee','#84cc16','#fb923c'];
+
+/* ─────────────────────────────────────────────────────────────────
+   UTILITIES
+───────────────────────────────────────────────────────────────── */
+function extractVideoId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_\-]{11})/);
+  return m ? m[1] : null;
+}
+
+function formatTime(secs) {
+  const s = Math.floor(secs);
+  const m = Math.floor(s/60);
+  const h = Math.floor(m/60);
+  if (h > 0) return `${h}:${String(m%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  return `${m}:${String(s%60).padStart(2,'0')}`;
+}
+
+function setStatus(msg) {
+  document.getElementById('statusText').textContent = msg;
+}
+function showStatus() { document.getElementById('status').style.display='block'; }
+function hideStatus() { document.getElementById('status').style.display='none'; }
+function showError(msg) {
+  const el = document.getElementById('error');
+  el.innerHTML = msg.replace(/\n/g, '<br>').replace(/ {2}/g, '&nbsp;&nbsp;');
+  el.style.display = 'block';
+}
+function clearError() { document.getElementById('error').style.display='none'; }
+
+/* ─────────────────────────────────────────────────────────────────
+   FETCH TRANSCRIPT  — calls local proxy server (proxy_server.py)
+───────────────────────────────────────────────────────────────── */
+const PROXY_BASE = 'http://localhost:8888';
+
+/* ─────────────────────────────────────────────────────────────────
+   HISTORY
+───────────────────────────────────────────────────────────────── */
+let _historyOpen = true;
+
+async function loadHistory() {
+  try {
+    const r = await fetch(`${PROXY_BASE}/history`);
+    const { videos } = await r.json();
+    renderHistory(videos);
+  } catch { /* proxy not running yet */ }
+}
+
+function renderHistory(videos) {
+  const card  = document.getElementById('historyCard');
+  const list  = document.getElementById('historyList');
+  const count = document.getElementById('historyCount');
+
+  if (!videos.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  count.textContent  = videos.length;
+
+  list.innerHTML = videos.map(v => {
+    const date  = new Date(v.analyzed_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    const cues  = v.cue_count ? `${v.cue_count} cues` : '';
+    const active = v.id === _currentVideoId ? ' active-history' : '';
+    return `<div class="history-item${active}" onclick="loadHistoryItem('${v.id}','${escAttr(v.url)}')">
+      <div class="history-info">
+        <div class="history-title">${escHtml(v.title || v.id)}</div>
+        <div class="history-meta">${date}${cues ? ' · ' + cues : ''}</div>
+      </div>
+      <button class="history-del" title="Remove" onclick="deleteHistoryItem(event,'${v.id}')">✕</button>
+    </div>`;
+  }).join('');
+
+  if (!_historyOpen) list.classList.add('collapsed');
+}
+
+function toggleHistory() {
+  _historyOpen = !_historyOpen;
+  document.getElementById('historyList').classList.toggle('collapsed', !_historyOpen);
+  document.getElementById('historyChevron').classList.toggle('open', _historyOpen);
+}
+
+async function loadHistoryItem(videoId, url) {
+  document.getElementById('urlInput').value = url || `https://www.youtube.com/watch?v=${videoId}`;
+  await analyze();
+}
+
+async function deleteHistoryItem(e, videoId) {
+  e.stopPropagation();
+  await fetch(`${PROXY_BASE}/delete?v=${videoId}`);
+  await loadHistory();
+}
+
+function escAttr(s) { return (s||'').replace(/'/g, "\\'"); }
+
+async function checkProxy() {
+  try {
+    const r = await fetch(`${PROXY_BASE}/health`, { signal: AbortSignal.timeout(2000) });
+    return r.ok;
+  } catch { return false; }
+}
+
+async function fetchTranscript(videoId) {
+  setStatus('Connecting to local proxy…');
+  const alive = await checkProxy();
+  if (!alive) {
+    throw new Error(
+      'Local proxy server is not running.\n\n' +
+      'Open a terminal and run:\n' +
+      '  python3 proxy_server.py\n\n' +
+      'Then click Analyze again.'
+    );
+  }
+  setStatus('Fetching transcript via yt-dlp…');
+  const r = await fetch(`${PROXY_BASE}/transcript?v=${videoId}`, {
+    signal: AbortSignal.timeout(90000)   // yt-dlp can take a moment
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || `Server error ${r.status}`);
+  if (!data.cues?.length) throw new Error('Transcript is empty — video may have no captions.');
+  return { cues: data.cues, title: data.title || '', analyzedAt: data.analyzed_at || '' };
+}
+
+function parseJson3Captions(data) {
+  if (!data.events) throw new Error('No caption events found.');
+  const cues = [];
+  for (const ev of data.events) {
+    if (!ev.segs) continue;
+    const text = ev.segs.map(s => s.utf8 || '').join('').replace(/\n/g,' ').trim();
+    if (text) cues.push({ start: (ev.tStartMs||0)/1000, text });
+  }
+  return cues;
+}
+
+function parseXmlCaptions(xml) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+  const nodes = doc.querySelectorAll('text');
+  if (!nodes.length) throw new Error('Could not parse caption XML.');
+  return Array.from(nodes).map(n => ({
+    start: parseFloat(n.getAttribute('start') || 0),
+    text: n.textContent.replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\n/g,' ').trim()
+  })).filter(c => c.text);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   SPEAKER DETECTION
+───────────────────────────────────────────────────────────────── */
+// Patterns: ">> Name:", "[Name]:", "Name:", at line start in cue text
+const SPEAKER_RE = /^(?:>>?\s*)?([A-Z][A-Za-z .'-]{1,30}):\s+/;
+
+function detectSpeakers(cues) {
+  const turns    = [];
+  const speakerMap = {};
+  let currentSpeaker = null;
+  let anonIdx = 0;   // toggles 0/1 on each >> to alternate Speaker 1 / Speaker 2
+
+  function registerSpeaker(name) {
+    if (!(name in speakerMap)) speakerMap[name] = Object.keys(speakerMap).length;
+  }
+
+  for (const cue of cues) {
+    let text = cue.text;
+    let isNewSpeaker = false;
+
+    // Named speaker  e.g. "Ben: ..." or ">> Ben: ..."
+    const named = text.match(SPEAKER_RE);
+    if (named) {
+      const name = named[1].trim();
+      text = text.slice(named[0].length).trim();
+      isNewSpeaker = (name !== currentSpeaker);
+      currentSpeaker = name;
+      registerSpeaker(currentSpeaker);
+
+    // Anonymous >>  — each >> = speaker switch, alternate between Speaker 1 / Speaker 2
+    } else if (/^>>?\s/.test(text)) {
+      text = text.replace(/^>>?\s*/, '').trim();
+      anonIdx = 1 - anonIdx;
+      const name = `Speaker ${anonIdx + 1}`;
+      isNewSpeaker = (name !== currentSpeaker);
+      currentSpeaker = name;
+      registerSpeaker(currentSpeaker);
+
+    // No marker at start — first cue ever gets Speaker 1
+    } else if (!currentSpeaker) {
+      currentSpeaker = 'Speaker 1';
+      isNewSpeaker = true;
+      registerSpeaker(currentSpeaker);
+    }
+
+    if (text) turns.push({ start: cue.start, speaker: currentSpeaker, text, isNewSpeaker });
+  }
+
+  return { turns, speakerMap };
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MERGE cues into readable paragraphs (group by speaker + time gap)
+───────────────────────────────────────────────────────────────── */
+function mergeTurns(turns) {
+  if (!turns.length) return [];
+  const MAX_GAP = 30; // seconds — same speaker continuous pause
+  const merged = [];
+  let cur = { ...turns[0] };
+  for (let i = 1; i < turns.length; i++) {
+    const t = turns[i];
+    const sameSpeaker  = t.speaker === cur.speaker;
+    const closeInTime  = (t.start - cur.start) < MAX_GAP;
+    const forcedBreak  = t.isNewSpeaker;           // >> detected — always split
+    if (sameSpeaker && closeInTime && !forcedBreak) {
+      cur.text += ' ' + t.text;
+    } else {
+      merged.push(cur);
+      cur = { ...t };
+    }
+  }
+  merged.push(cur);
+  return merged;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   VOCABULARY HIGHLIGHT
+───────────────────────────────────────────────────────────────── */
+function highlightVocab(text) {
+  // Build a single regex over all vocab keys (longest first to avoid partial matches)
+  const escaped = VOCAB_KEYS.map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g,'\\$&'));
+  const re = new RegExp(`\\b(${escaped.join('|')})\\b`, 'gi');
+  return text.replace(re, (match) => {
+    const key = match.toLowerCase();
+    const def = VOCAB[key] || '';
+    return `<span class="vocab-word" title="${def}">${match}<span class="vocab-tip">${match}: ${def}</span></span>`;
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   EXTRACTIVE SUMMARY
+───────────────────────────────────────────────────────────────── */
+const STOPWORDS = new Set([
+  'i','me','my','we','our','you','your','he','she','it','they','them','this','that',
+  'these','those','is','are','was','were','be','been','have','has','had','do','does',
+  'did','will','would','could','should','may','might','shall','can','a','an','the',
+  'and','or','but','if','in','on','at','to','for','of','with','by','from','up','about',
+  'into','then','than','so','no','not','just','as','also','like','well','really',
+  'very','much','more','some','any','all','one','two','three','what','when','where',
+  'who','which','how','why','there','here','got','get','go','going','know','think',
+  'want','need','make','say','said','see','look','come','came','take','let','now',
+  'yeah','yes','okay','ok','um','uh','actually','things','thing','way','time','back'
+]);
+
+function extractiveSummary(paragraphs, n = 7) {
+  // collect all sentences
+  const allText = paragraphs.map(p => p.text).join(' ');
+  const sentences = allText.match(/[^.!?]+[.!?]+/g) || [allText];
+
+  // word frequency
+  const freq = {};
+  sentences.forEach(s => {
+    s.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).forEach(w => {
+      if (w.length > 2 && !STOPWORDS.has(w)) freq[w] = (freq[w]||0) + 1;
+    });
+  });
+
+  // score sentences
+  const scored = sentences.map((s, i) => {
+    const words = s.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/);
+    const score = words.reduce((acc, w) => acc + (freq[w]||0), 0) / (words.length||1);
+    return { s: s.trim(), score, i };
+  });
+
+  // top N unique, preserving original order
+  const top = scored.sort((a,b)=>b.score-a.score)
+    .slice(0, n)
+    .sort((a,b)=>a.i-b.i)
+    .map(x => x.s)
+    .filter(s => s.length > 20);
+
+  return top.length ? top : ['No summary available — transcript may be too short.'];
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   RENDER
+───────────────────────────────────────────────────────────────── */
+function renderResults(paragraphs, speakerMap, title, analyzedAt) {
+  const results = document.getElementById('results');
+  results.style.display = 'block';
+
+  // ── Transcript ──
+  const body = document.getElementById('transcriptBody');
+  let _wi = 0;  // word timing index
+  body.innerHTML = paragraphs.map(p => {
+    const idx = p.speaker ? (speakerMap[p.speaker] || 0) % SPEAKER_COLORS.length : 0;
+    const color = SPEAKER_COLORS[idx];
+    const speakerLabel = p.speaker
+      ? `<span class="turn-speaker" style="background:${color}">${escHtml(p.speaker)}</span>`
+      : `<span class="turn-speaker" style="background:#4b5563">—</span>`;
+    const words = p.text.split(/\s+/).filter(w => w);
+    const wordSpans = words.map(word => {
+      const t = (_wordTimings[_wi] !== undefined ? _wordTimings[_wi] : p.start).toFixed(3);
+      _wi++;
+      return `<span class="word" data-t="${t}">${highlightVocab(escHtml(word))}</span>`;
+    }).join(' ');
+    return `<div class="turn" data-start="${p.start}">
+      <div class="turn-header">
+        ${speakerLabel}
+        <span class="turn-time" onclick="seekTo(${p.start})" title="Click to jump here">${formatTime(p.start)}</span>
+      </div>
+      <div class="turn-text">${wordSpans}</div>
+    </div>`;
+  }).join('');
+
+  // Build sorted word element index for fast binary search in syncTranscript
+  _wordEls = Array.from(body.querySelectorAll('.word[data-t]'))
+    .map(el => ({ t: parseFloat(el.dataset.t), el }));
+
+  // ── Vocab found ──
+  const allText = paragraphs.map(p=>p.text).join(' ');
+  const foundVocab = [...new Set(
+    VOCAB_KEYS.filter(w => new RegExp(`\\b${w}\\b`,'i').test(allText))
+  )].sort();
+
+  document.getElementById('vocabGrid').innerHTML = foundVocab.length
+    ? foundVocab.map(w => `<span class="vocab-tag" title="${VOCAB[w]}">${w}</span>`).join('')
+    : '<span style="color:var(--muted);font-size:.85rem">No advanced vocabulary detected in this transcript.</span>';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   COPY
+───────────────────────────────────────────────────────────────── */
+let _plainTranscript = '';
+let _currentVideoId   = '';
+function copyTranscript() {
+  navigator.clipboard.writeText(_plainTranscript).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy plain text', 1800);
+  });
+}
+
+/* ── Word-level timing ── */
+let _wordTimings = [];  // flat array of floats (one per word, in order)
+let _wordEls     = [];  // [{t, el}] built after render, sorted by t
+
+function buildWordTimings(cues) {
+  const out = [];
+  for (let i = 0; i < cues.length; i++) {
+    const c = cues[i];
+    const nextT = i + 1 < cues.length ? cues[i + 1].start : c.start + 5;
+    const dur   = Math.max(nextT - c.start, 0.3);
+    // Strip speaker prefixes the same way detectSpeakers does
+    let text = c.text.replace(/^>>?\s*/, '').replace(/^[A-Z][A-Za-z .'-]{1,30}:\s*/, '');
+    const words = text.split(/\s+/).filter(w => w);
+    words.forEach((_, j) => {
+      out.push(c.start + (j / Math.max(words.length, 1)) * dur);
+    });
+  }
+  return out;
+}
+
+/* ── Transcript sync ── */
+let _autoScroll = true;
+
+function syncTranscript(currentTime) {
+  const turns = document.querySelectorAll('.turn[data-start]');
+  if (!turns.length) return;
+
+  // Find the last turn whose start <= currentTime
+  let active = null;
+  for (const turn of turns) {
+    if (parseFloat(turn.dataset.start) <= currentTime) active = turn;
+    else break;
+  }
+  if (!active) return;
+
+  if (!active.classList.contains('active')) {
+    document.querySelectorAll('.turn.active').forEach(t => t.classList.remove('active'));
+    active.classList.add('active');
+    if (_autoScroll) active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Word-level highlight — binary search _wordEls
+  if (_wordEls.length) {
+    let lo = 0, hi = _wordEls.length - 1, idx = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (_wordEls[mid].t <= currentTime) { idx = mid; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    const activeWord = idx >= 0 ? _wordEls[idx].el : null;
+    const prevWord = document.querySelector('.word.active-word');
+    if (prevWord !== activeWord) {
+      if (prevWord) prevWord.classList.remove('active-word');
+      if (activeWord) activeWord.classList.add('active-word');
+    }
+  }
+}
+
+function seekTo(seconds) {
+  const player = document.getElementById('audioPlayer');
+  if (player && player.src) {
+    player.currentTime = seconds;
+    player.play();
+  }
+}
+
+/* ── Audio player setup ── */
+let _audioMode = 'original';  // 'original' | 'tts'
+
+function setupAudioPlayer(videoId) {
+  const loading   = document.getElementById('playerLoading');
+  const loadText  = document.getElementById('playerLoadingText');
+  const player    = document.getElementById('audioPlayer');
+
+  // Reset state
+  player.style.display = 'none';
+  loading.style.display = 'flex';
+  loadText.textContent = 'Preparing audio… (first load takes ~10s)';
+  _audioMode = 'original';
+  document.getElementById('modeOrigBtn').classList.add('active');
+  document.getElementById('modeTtsBtn').classList.remove('active');
+  document.getElementById('audioModeRow').style.display = 'none';
+  document.getElementById('stickyPlayer').style.display = 'block';
+
+  // Probe the audio endpoint — it triggers download if not cached
+  fetch(`${PROXY_BASE}/audio?v=${videoId}`, { method: 'HEAD', signal: AbortSignal.timeout(180000) })
+    .then(r => {
+      if (!r.ok) throw new Error(`status ${r.status}`);
+      player.src = `${PROXY_BASE}/audio?v=${videoId}`;
+      player.style.display = 'block';
+      loading.style.display = 'none';
+      document.getElementById('audioModeRow').style.display = 'flex';
+
+      player.addEventListener('timeupdate', () => syncTranscript(player.currentTime));
+      document.getElementById('transcriptBody').addEventListener('wheel', () => {
+        _autoScroll = false;
+        clearTimeout(window._scrollTimer);
+        window._scrollTimer = setTimeout(() => { _autoScroll = true; }, 5000);
+      }, { passive: true });
+    })
+    .catch(e => {
+      loadText.textContent = 'Audio unavailable: ' + e.message;
+      document.querySelector('.player-spinner').style.display = 'none';
+    });
+}
+
+function switchAudioMode(mode) {
+  if (!_currentVideoId || _audioMode === mode) return;
+  const player   = document.getElementById('audioPlayer');
+  const loading  = document.getElementById('playerLoading');
+  const loadText = document.getElementById('playerLoadingText');
+
+  _audioMode = mode;
+  document.getElementById('modeOrigBtn').classList.toggle('active', mode === 'original');
+  document.getElementById('modeTtsBtn').classList.toggle('active', mode === 'tts');
+
+  const savedTime = player.currentTime;
+  player.pause();
+  player.style.display = 'none';
+  loading.style.display = 'flex';
+
+  if (mode === 'original') {
+    loadText.textContent = 'Switching to original audio…';
+    player.src = `${PROXY_BASE}/audio?v=${_currentVideoId}`;
+    player.currentTime = savedTime;
+    player.style.display = 'block';
+    loading.style.display = 'none';
+  } else {
+    loadText.textContent = 'Generating English TTS… (first time takes a few minutes)';
+    // Trigger TTS generation, then load
+    fetch(`${PROXY_BASE}/tts?v=${_currentVideoId}`, { method: 'HEAD', signal: AbortSignal.timeout(600000) })
+      .then(r => {
+        if (!r.ok) throw new Error(`TTS error ${r.status}`);
+        player.src = `${PROXY_BASE}/tts?v=${_currentVideoId}`;
+        player.currentTime = savedTime;
+        player.style.display = 'block';
+        loading.style.display = 'none';
+      })
+      .catch(e => {
+        loadText.textContent = 'TTS unavailable: ' + e.message;
+        document.querySelector('.player-spinner').style.display = 'none';
+        // Revert to original
+        _audioMode = 'original';
+        document.getElementById('modeOrigBtn').classList.add('active');
+        document.getElementById('modeTtsBtn').classList.remove('active');
+      });
+  }
+}
+
+/* ── Save transcript as .txt ── */
+function saveTranscript() {
+  if (!_plainTranscript) return;
+  const blob = new Blob([_plainTranscript], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `transcript_${_currentVideoId}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ── Save audio as .m4a via local proxy ── */
+async function saveAudio() {
+  if (!_currentVideoId) return;
+  const btn   = document.getElementById('saveAudioBtn');
+  const label = document.getElementById('saveAudioLabel');
+  btn.disabled = true;
+  btn.classList.add('saving');
+  label.textContent = 'Downloading…';
+
+  try {
+    // Stream the audio through fetch → blob → anchor download
+    const r = await fetch(`${PROXY_BASE}/audio?v=${_currentVideoId}`, {
+      signal: AbortSignal.timeout(300000)   // 5-min max
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+      throw new Error(err.error || `Server error ${r.status}`);
+    }
+    const filename = r.headers.get('X-Filename') || `audio_${_currentVideoId}.m4a`;
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    label.textContent = 'Saved!';
+    setTimeout(() => { label.textContent = 'Save Audio'; }, 2500);
+  } catch(e) {
+    showError('Audio download failed: ' + e.message);
+    label.textContent = 'Save Audio';
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('saving');
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MAIN
+───────────────────────────────────────────────────────────────── */
+async function analyze() {
+  const url = document.getElementById('urlInput').value.trim();
+  const btn = document.getElementById('analyzeBtn');
+
+  clearError();
+  document.getElementById('results').style.display = 'none';
+
+  const videoId = extractVideoId(url);
+  if (!videoId) { showError('Invalid YouTube URL. Please check the link and try again.'); return; }
+
+  btn.disabled = true;
+  showStatus();
+
+  try {
+    const { cues, title, analyzedAt } = await fetchTranscript(videoId);
+
+    setStatus('Processing transcript…');
+    _wordTimings = buildWordTimings(cues);
+    _wordEls = [];
+    _userVocab = [];
+    const { turns, speakerMap } = detectSpeakers(cues);
+    const paragraphs = mergeTurns(turns);
+
+    _currentVideoId  = videoId;
+    _plainTranscript = paragraphs.map(p =>
+      `[${formatTime(p.start)}] ${p.speaker ? p.speaker + ': ' : ''}${p.text}`
+    ).join('\n\n');
+
+    renderResults(paragraphs, speakerMap, title, analyzedAt);
+    setupAudioPlayer(videoId);
+    loadHistory();   // refresh history panel
+  } catch(err) {
+    showError('Error: ' + err.message);
+  } finally {
+    hideStatus();
+    btn.disabled = false;
+  }
+}
+
+// On load: fetch history and auto-analyze pre-filled URL
+window.addEventListener('DOMContentLoaded', () => {
+  loadHistory();
+  const v = document.getElementById('urlInput').value.trim();
+  if (v) analyze();
+});
+
+/* ── Selection → Save to Vocabulary ── */
+let _userVocab = [];  // [{phrase, note}]
+
+document.addEventListener('mouseup', e => {
+  if (e.target.closest('#selectionPopup')) return;
+  // Small delay so selection is finalized
+  setTimeout(() => {
+    const popup = document.getElementById('selectionPopup');
+    const sel  = window.getSelection();
+    const text = sel ? sel.toString().trim() : '';
+
+    const inTranscript = text.length > 0
+      && sel.anchorNode
+      && (sel.anchorNode.nodeType === Node.TEXT_NODE
+        ? sel.anchorNode.parentElement
+        : sel.anchorNode
+      ).closest('#transcriptBody');
+
+    if (inTranscript) {
+      const range = sel.getRangeAt(0);
+      const rect  = range.getBoundingClientRect();
+      // position: fixed → use pure viewport coords
+      popup.style.display = 'block';
+      const pw = popup.offsetWidth;
+      const left = Math.max(8, Math.min(rect.left + rect.width / 2 - pw / 2, window.innerWidth - pw - 8));
+      popup.style.left = `${left}px`;
+      popup.style.top  = `${Math.max(8, rect.top - 44)}px`;
+      popup.dataset.phrase = text;
+    } else {
+      popup.style.display = 'none';
+    }
+  }, 10);
+});
+
+document.getElementById('selectionPopup').addEventListener('click', () => {
+  const popup = document.getElementById('selectionPopup');
+  const phrase = popup.dataset.phrase;
+  if (!phrase) return;
+  popup.style.display = 'none';
+  window.getSelection()?.removeAllRanges();
+  saveUserVocab(phrase);
+});
+
+function saveUserVocab(phrase) {
+  if (_userVocab.some(v => v.toLowerCase() === phrase.toLowerCase())) return;  // no dupes
+  _userVocab.push(phrase);
+  renderUserVocab();
+  // Scroll vocab section into view briefly
+  document.getElementById('vocabGrid').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function removeUserVocab(phrase) {
+  _userVocab = _userVocab.filter(v => v !== phrase);
+  renderUserVocab();
+}
+
+function renderUserVocab() {
+  const grid = document.getElementById('vocabGrid');
+  // Keep auto-detected vocab tags, replace/add user-saved ones
+  const autoTags = Array.from(grid.querySelectorAll('.vocab-tag:not(.user-saved)'));
+  const userTags = _userVocab.map(phrase =>
+    `<span class="vocab-tag user-saved" title="User saved">
+      ${escHtml(phrase)}
+      <span class="vocab-tag-remove" onclick="removeUserVocab(${JSON.stringify(phrase)})" title="Remove">×</span>
+    </span>`
+  ).join('');
+  // Rebuild: user tags first, then auto tags
+  const autoHtml = autoTags.map(el => el.outerHTML).join('');
+  grid.innerHTML = userTags + (autoHtml || (!_userVocab.length ? '<span style="color:var(--muted);font-size:.85rem">No advanced vocabulary detected in this transcript.</span>' : ''));
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space') return;
+  const tag = document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+  const player = document.getElementById('audioPlayer');
+  if (!player || player.style.display === 'none') return;
+  e.preventDefault();
+  e.stopPropagation();
+  // If the audio element itself has focus, blur it so the browser doesn't also toggle
+  if (document.activeElement === player) player.blur();
+  player.paused ? player.play() : player.pause();
+}, true);  // capture phase — fires before browser default
+</script>
+
+<!-- Selection popup -->
+<div id="selectionPopup">＋ Save to Vocabulary</div>
+
+<!-- Sticky bottom player -->
+<div id="stickyPlayer" style="display:none">
+  <div class="sticky-inner">
+    <div class="audio-mode-row" id="audioModeRow" style="display:none">
+      <button class="mode-btn active" id="modeOrigBtn" onclick="switchAudioMode('original')">Original Audio</button>
+      <button class="mode-btn" id="modeTtsBtn" onclick="switchAudioMode('tts')">English TTS</button>
+    </div>
+    <div class="player-wrap" id="playerWrap">
+      <div class="player-loading" id="playerLoading">
+        <div class="player-spinner"></div>
+        <span id="playerLoadingText">Preparing audio…</span>
+      </div>
+      <audio id="audioPlayer" controls preload="none" style="display:none">
+        Your browser does not support the audio element.
+      </audio>
+    </div>
+  </div>
+</div>
+</body>
+</html>
