@@ -7,11 +7,10 @@ services:
       repo: Emmasu/demo-claude
       branch: main
       deploy_on_push: true
-    run_command: python3 server.py
-    environment_slug: python
+    dockerfile_path: Dockerfile
     http_port: 8080
     instance_count: 1
-    instance_size_slug: apps-s-1vcpu-0.5gb
+    instance_size_slug: apps-s-1vcpu-1gb
     routes:
       - path: /
     envs:

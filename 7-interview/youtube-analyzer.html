@@ -487,7 +487,9 @@ function clearError() { document.getElementById('error').style.display='none'; }
 /* ─────────────────────────────────────────────────────────────────
    FETCH TRANSCRIPT  — calls local proxy server (proxy_server.py)
 ───────────────────────────────────────────────────────────────── */
-const PROXY_BASE = 'http://localhost:8888';
+const PROXY_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8888'
+  : window.location.origin + '/interview';
 
 /* ─────────────────────────────────────────────────────────────────
    HISTORY

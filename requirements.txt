@@ -1,1 +1,6 @@
 anthropic
+yt-dlp
+youtube-transcript-api
+deep-translator
+edge-tts
+pydub

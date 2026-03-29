@@ -1,16 +1,31 @@
 #!/usr/bin/env python3
-"""Combined server: landing page at /, course notes at /course, btc-greeks at /btc"""
+"""Combined server: /, /course, /btc, /interview"""
 
 import http.server
 import urllib.request
-import os
+import os, importlib.util
 
 PORT = int(os.environ.get("PORT", 8080))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-INDEX_HTML  = os.path.join(BASE_DIR, "index.html")
-COURSE_HTML = os.path.join(BASE_DIR, "6-lesson", "index.html")
-BTC_HTML    = os.path.join(BASE_DIR, "4-option", "index.html")
+INDEX_HTML     = os.path.join(BASE_DIR, "index.html")
+COURSE_HTML    = os.path.join(BASE_DIR, "6-lesson", "index.html")
+BTC_HTML       = os.path.join(BASE_DIR, "4-option", "index.html")
+INTERVIEW_HTML = os.path.join(BASE_DIR, "7-interview", "youtube-analyzer.html")
+
+# ── Load interview proxy module ───────────────────────────────────────────────
+_itv_mod = None
+def _itv():
+    global _itv_mod
+    if _itv_mod is None:
+        spec = importlib.util.spec_from_file_location(
+            "interview_proxy",
+            os.path.join(BASE_DIR, "7-interview", "proxy_server.py")
+        )
+        _itv_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_itv_mod)
+        _itv_mod.init_db()
+    return _itv_mod
 
 DERIBIT_BASE = "https://www.deribit.com"
 BYBIT_BASE   = "https://api.bybit.com"
@@ -34,6 +49,12 @@ class CombinedHandler(http.server.BaseHTTPRequestHandler):
 
         elif self.path in ("/course", "/course/"):
             self._serve_file(COURSE_HTML)
+
+        elif self.path in ("/interview", "/interview/"):
+            self._serve_file(INTERVIEW_HTML)
+
+        elif self.path.startswith("/interview/"):
+            self._handle_interview(self.path[len("/interview"):])
 
         else:
             self._serve_file(INDEX_HTML)
@@ -61,6 +82,65 @@ class CombinedHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
+
+    # ── Interview (YouTube Analyzer) ─────────────────────────────────────────
+
+    def _handle_interview(self, subpath):
+        """Delegate to interview proxy module by creating a shim Handler."""
+        try:
+            mod = _itv()
+        except Exception as e:
+            self._json_err(500, f"Interview module failed to load: {e}")
+            return
+
+        from urllib.parse import urlparse, parse_qs
+
+        # Build a shim that looks like mod.Handler but uses our wfile/headers
+        shim = mod.Handler.__new__(mod.Handler)
+        shim.wfile   = self.wfile
+        shim.headers = self.headers
+        shim.send_response  = self.send_response
+        shim.send_header    = self.send_header
+        shim.end_headers    = self.end_headers
+
+        parsed = urlparse(subpath)
+        params = parse_qs(parsed.query)
+        p = parsed.path
+
+        if p == "/health":
+            self._json_ok({"status": "ok"})
+        elif p == "/transcript":
+            shim._handle_transcript(params)
+        elif p == "/history":
+            shim._handle_history()
+        elif p == "/delete":
+            shim._handle_delete(params)
+        elif p == "/audio":
+            shim._handle_audio(params)
+        elif p == "/tts":
+            shim._handle_tts(params)
+        else:
+            self._json_err(404, "Not found")
+
+    def _json_ok(self, obj):
+        import json
+        body = json.dumps(obj).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _json_err(self, code, msg):
+        import json
+        body = json.dumps({"error": msg}).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
