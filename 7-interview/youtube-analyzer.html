@@ -171,6 +171,11 @@
     }
     .turn-time:hover { color: var(--accent); }
     .turn-text { color: var(--text); padding-left: .2rem; }
+    .turn-subtitle {
+      color: var(--muted); font-size: .8rem; font-style: italic;
+      padding-left: .4rem; margin-top: .2rem;
+      border-left: 2px solid rgba(108,99,255,.3);
+    }
 
     /* ── Vocabulary highlights ── */
     .vocab-word {
@@ -670,7 +675,7 @@ function detectSpeakers(cues) {
       registerSpeaker(currentSpeaker);
     }
 
-    if (text) turns.push({ start: cue.start, speaker: currentSpeaker, text, isNewSpeaker });
+    if (text) turns.push({ start: cue.start, speaker: currentSpeaker, text, isNewSpeaker, subtitle: cue.subtitle || '' });
   }
 
   return { turns, speakerMap };
@@ -691,6 +696,7 @@ function mergeTurns(turns) {
     const forcedBreak  = t.isNewSpeaker;           // >> detected — always split
     if (sameSpeaker && closeInTime && !forcedBreak) {
       cur.text += ' ' + t.text;
+      if (t.subtitle) cur.subtitle = (cur.subtitle ? cur.subtitle + ' ' : '') + t.subtitle;
     } else {
       merged.push(cur);
       cur = { ...t };
@@ -787,6 +793,7 @@ function renderResults(paragraphs, speakerMap, title, analyzedAt) {
         <span class="turn-time" onclick="seekTo(${p.start})" title="Click to jump here">${formatTime(p.start)}</span>
       </div>
       <div class="turn-text">${wordSpans}</div>
+      ${p.subtitle ? `<div class="turn-subtitle">${escHtml(p.subtitle.trim())}</div>` : ''}
     </div>`;
   }).join('');
 
@@ -1214,14 +1221,13 @@ document.addEventListener('keydown', e => {
   if (e.code !== 'Space') return;
   const tag = document.activeElement.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
-  const player = document.getElementById('audioPlayer');
-  if (!player || player.style.display === 'none') return;
   e.preventDefault();
   e.stopPropagation();
-  // If the audio element itself has focus, blur it so the browser doesn't also toggle
+  const player = document.getElementById('audioPlayer');
+  if (!player || player.style.display === 'none') return;
   if (document.activeElement === player) player.blur();
   player.paused ? player.play() : player.pause();
-}, true);  // capture phase — fires before browser default
+}, true);
 </script>
 
 <!-- Selection popup -->
