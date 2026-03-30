@@ -361,7 +361,7 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           Save Transcript <span class="fmt">.txt</span>
         </button>
-        <button class="save-btn save-audio" id="saveAudioBtn" onclick="saveAudio()">
+        <button class="save-btn save-audio" id="saveAudioBtn" onclick="saveAudio()" style="display:none">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
           <span id="saveAudioLabel">Save Audio</span> <span class="fmt">.m4a</span>
         </button>
@@ -1050,7 +1050,7 @@ async function analyze() {
     ).join('\n\n');
 
     renderResults(paragraphs, speakerMap, title, analyzedAt);
-    setupAudioPlayer(videoId);
+    if (IS_LOCAL) setupAudioPlayer(videoId);
     loadHistory();   // refresh history panel
   } catch(err) {
     showError('Error: ' + err.message);
@@ -1067,7 +1067,8 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('analyzeHint').style.display   = 'none';
     document.getElementById('readonlyBanner').style.display = 'block';
   } else {
-    document.getElementById('syncRow').style.display = 'block';
+    document.getElementById('syncRow').style.display    = 'block';
+    document.getElementById('saveAudioBtn').style.display = '';
   }
   loadHistory();
 });
