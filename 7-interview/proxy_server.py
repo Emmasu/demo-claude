@@ -263,6 +263,23 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+
+        if parsed.path == "/push-audio":
+            video_id = self._require_video_id(params)
+            if not video_id: return
+            ext = params.get("ext", ["m4a"])[0]
+            if ext not in ("m4a", "webm", "mp3", "ogg"):
+                self._json(400, {"error": "Invalid ext"}); return
+            length = int(self.headers.get("Content-Length", 0))
+            data   = self.rfile.read(length)
+            path   = os.path.join(CACHE_DIR, f"{video_id}.{ext}")
+            with open(path, "wb") as f:
+                f.write(data)
+            print(f"[sync]  audio saved  {video_id}.{ext}  {len(data)//1024}KB")
+            self._json(200, {"ok": True})
+            return
+
         if parsed.path == "/push":
             length = int(self.headers.get("Content-Length", 0))
             body   = self.rfile.read(length)

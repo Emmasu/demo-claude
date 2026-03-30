@@ -71,6 +71,17 @@ class CombinedHandler(http.server.BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             self._handle_ai(body)
+        elif self.path.startswith("/interview/push-audio"):
+            from urllib.parse import urlparse as _up, parse_qs as _pqs
+            params = _pqs(_up(self.path).query)
+            shim = _itv().Handler.__new__(_itv().Handler)
+            shim.wfile, shim.headers = self.wfile, self.headers
+            shim.send_response, shim.send_header, shim.end_headers = \
+                self.send_response, self.send_header, self.end_headers
+            shim.rfile = self.rfile
+            shim.path  = self.path.replace("/interview", "", 1)
+            shim.do_POST()
+
         elif self.path == "/interview/push":
             length = int(self.headers.get("Content-Length", 0))
             body   = self.rfile.read(length)

@@ -1050,7 +1050,7 @@ async function analyze() {
     ).join('\n\n');
 
     renderResults(paragraphs, speakerMap, title, analyzedAt);
-    if (IS_LOCAL) setupAudioPlayer(videoId);
+    setupAudioPlayer(videoId);
     loadHistory();   // refresh history panel
   } catch(err) {
     showError('Error: ' + err.message);
@@ -1095,8 +1095,8 @@ async function syncToCloud() {
       full.push({ id: v.id, url: v.url, title: v.title, analyzed_at: v.analyzed_at, cues: d.cues });
     }
 
-    // 3. POST to cloud
-    status.textContent = 'Uploading…';
+    // 3. POST transcripts to cloud
+    status.textContent = 'Uploading transcripts…';
     const res = await fetch(`${CLOUD_BASE}/push`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1104,7 +1104,35 @@ async function syncToCloud() {
     });
     if (!res.ok) throw new Error(`Server ${res.status}`);
     const { synced } = await res.json();
-    status.textContent = `✓ ${synced} video${synced !== 1 ? 's' : ''} synced`;
+
+    // 4. Upload audio files
+    let audioSynced = 0;
+    for (const v of videos) {
+      status.textContent = `Uploading audio ${audioSynced + 1}/${videos.length}…`;
+      try {
+        // Probe local audio (triggers download if not cached)
+        const head = await fetch(`${PROXY_BASE}/audio?v=${v.id}`, {
+          method: 'HEAD', signal: AbortSignal.timeout(30000)
+        });
+        if (!head.ok) continue;
+        const ext = (head.headers.get('Content-Disposition') || '').match(/\.(\w+)"/) ?
+          (head.headers.get('Content-Disposition').match(/\.(\w+)"/)[1]) : 'm4a';
+        // Fetch binary audio
+        const ar = await fetch(`${PROXY_BASE}/audio?v=${v.id}`, { signal: AbortSignal.timeout(120000) });
+        if (!ar.ok) continue;
+        const blob = await ar.blob();
+        // Push to cloud
+        const up = await fetch(`${CLOUD_BASE}/push-audio?v=${v.id}&ext=${ext}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/octet-stream' },
+          body: blob,
+          signal: AbortSignal.timeout(300000)
+        });
+        if (up.ok) audioSynced++;
+      } catch (_) { /* skip if audio unavailable */ }
+    }
+
+    status.textContent = `✓ ${synced} transcript${synced !== 1 ? 's' : ''}, ${audioSynced} audio${audioSynced !== 1 ? 's' : ''} synced`;
   } catch (e) {
     status.textContent = 'Error: ' + e.message;
   }
