@@ -55,6 +55,20 @@
 
     .hint { font-size: .8rem; color: var(--muted); text-align: center; margin-bottom: 2rem; }
     .hint a { color: var(--accent); text-decoration: none; }
+    .readonly-banner {
+      background: rgba(167,139,250,.08); border: 1px solid rgba(167,139,250,.2);
+      border-radius: 10px; padding: .75rem 1.1rem; margin-bottom: 2rem;
+      font-size: .85rem; color: #a78bfa; text-align: center;
+    }
+    .sync-btn {
+      background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff;
+      border: none; border-radius: 10px; padding: .55rem 1.2rem;
+      font-size: .82rem; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: .4rem;
+      transition: opacity .15s;
+    }
+    .sync-btn:hover { opacity: .85; }
+    .sync-btn:disabled { opacity: .5; cursor: not-allowed; }
 
     /* ── Status / Error ── */
     #status {
@@ -300,12 +314,25 @@
     <p>Transcript · Speaker Detection · Summary · Advanced Vocabulary</p>
   </header>
 
-  <div class="input-row">
+  <div class="input-row" id="analyzeRow">
     <input id="urlInput" type="text" placeholder="Paste a YouTube URL..."
            value="https://www.youtube.com/watch?v=MpwfiqHd6i4" />
     <button id="analyzeBtn" onclick="analyze()">Analyze</button>
   </div>
-  <p class="hint">Fetches the official YouTube captions — no upload needed.</p>
+  <p class="hint" id="analyzeHint">Fetches the official YouTube captions — no upload needed.</p>
+
+  <div class="readonly-banner" id="readonlyBanner" style="display:none">
+    📖 View-only mode — transcripts are synced from the local analyzer.
+    New videos must be analyzed locally, then synced here.
+  </div>
+
+  <!-- Sync button (local only) -->
+  <div style="text-align:center;margin-bottom:1.5rem;display:none" id="syncRow">
+    <button class="sync-btn" id="syncBtn" onclick="syncToCloud()">
+      ☁ Sync to Cloud
+    </button>
+    <span id="syncStatus" style="margin-left:.75rem;font-size:.8rem;color:var(--muted)"></span>
+  </div>
 
   <!-- History panel -->
   <div id="historyCard" class="card history-card" style="display:none">
@@ -487,9 +514,9 @@ function clearError() { document.getElementById('error').style.display='none'; }
 /* ─────────────────────────────────────────────────────────────────
    FETCH TRANSCRIPT  — calls local proxy server (proxy_server.py)
 ───────────────────────────────────────────────────────────────── */
-const PROXY_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:8888'
-  : window.location.origin + '/interview';
+const IS_LOCAL   = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const CLOUD_BASE = 'https://whale-app-6umlu.ondigitalocean.app/interview';
+const PROXY_BASE = IS_LOCAL ? 'http://localhost:8888' : window.location.origin + '/interview';
 
 /* ─────────────────────────────────────────────────────────────────
    HISTORY
@@ -1035,10 +1062,53 @@ async function analyze() {
 
 // On load: fetch history and auto-analyze pre-filled URL
 window.addEventListener('DOMContentLoaded', () => {
+  if (!IS_LOCAL) {
+    document.getElementById('analyzeRow').style.display    = 'none';
+    document.getElementById('analyzeHint').style.display   = 'none';
+    document.getElementById('readonlyBanner').style.display = 'block';
+  } else {
+    document.getElementById('syncRow').style.display = 'block';
+  }
   loadHistory();
-  const v = document.getElementById('urlInput').value.trim();
-  if (v) analyze();
 });
+
+/* ── Sync local DB to cloud ── */
+async function syncToCloud() {
+  const btn    = document.getElementById('syncBtn');
+  const status = document.getElementById('syncStatus');
+  btn.disabled = true;
+  status.textContent = 'Fetching local data…';
+
+  try {
+    // 1. Get all history entries
+    const hr = await fetch(`${PROXY_BASE}/history`);
+    const { videos } = await hr.json();
+    if (!videos.length) { status.textContent = 'Nothing to sync.'; btn.disabled = false; return; }
+
+    // 2. Fetch full cues for each video
+    status.textContent = `Loading ${videos.length} transcripts…`;
+    const full = [];
+    for (const v of videos) {
+      const tr = await fetch(`${PROXY_BASE}/transcript?v=${v.id}`);
+      const d  = await tr.json();
+      full.push({ id: v.id, url: v.url, title: v.title, analyzed_at: v.analyzed_at, cues: d.cues });
+    }
+
+    // 3. POST to cloud
+    status.textContent = 'Uploading…';
+    const res = await fetch(`${CLOUD_BASE}/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videos: full })
+    });
+    if (!res.ok) throw new Error(`Server ${res.status}`);
+    const { synced } = await res.json();
+    status.textContent = `✓ ${synced} video${synced !== 1 ? 's' : ''} synced`;
+  } catch (e) {
+    status.textContent = 'Error: ' + e.message;
+  }
+  btn.disabled = false;
+}
 
 /* ── Selection → Save to Vocabulary ── */
 let _userVocab = [];  // [{phrase, note}]

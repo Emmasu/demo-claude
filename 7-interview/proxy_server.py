@@ -261,6 +261,27 @@ class Handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200); self._cors(); self.end_headers()
 
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/push":
+            length = int(self.headers.get("Content-Length", 0))
+            body   = self.rfile.read(length)
+            try:
+                data   = json.loads(body)
+                videos = data.get("videos", [])
+                count  = 0
+                for v in videos:
+                    if v.get("id") and v.get("cues"):
+                        db_save(v["id"], v.get("url",""), v.get("title", v["id"]),
+                                v["cues"] if isinstance(v["cues"], list) else json.loads(v["cues"]))
+                        count += 1
+                print(f"[sync]  pushed {count} videos")
+                self._json(200, {"synced": count})
+            except Exception as e:
+                self._json(500, {"error": str(e)})
+        else:
+            self._json(404, {"error": "Not found"})
+
     def do_HEAD(self):
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)

@@ -71,6 +71,27 @@ class CombinedHandler(http.server.BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             self._handle_ai(body)
+        elif self.path == "/interview/push":
+            length = int(self.headers.get("Content-Length", 0))
+            body   = self.rfile.read(length)
+            shim   = _itv().Handler.__new__(_itv().Handler)
+            shim.wfile, shim.headers = self.wfile, self.headers
+            shim.send_response, shim.send_header, shim.end_headers = \
+                self.send_response, self.send_header, self.end_headers
+            # Reuse do_POST logic by calling it with body already read
+            import json as _json
+            try:
+                data   = _json.loads(body)
+                videos = data.get("videos", [])
+                mod    = _itv()
+                count  = 0
+                for v in videos:
+                    if v.get("id") and v.get("cues"):
+                        mod.db_save(v["id"], v.get("url",""), v.get("title", v["id"]), v["cues"])
+                        count += 1
+                shim._json(200, {"synced": count})
+            except Exception as e:
+                shim._json(500, {"error": str(e)})
         else:
             self.send_error(404)
 
