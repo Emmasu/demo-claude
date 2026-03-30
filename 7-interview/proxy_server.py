@@ -84,31 +84,49 @@ def fetch_transcript_and_title(video_id: str) -> tuple[list[dict], str]:
         pass
 
     # ── Captions via youtube-transcript-api ──
-    api = YouTubeTranscriptApi()
-    transcript_list = api.list(video_id)
-
-    # Prefer English; fall back to first available language
+    cues = None
     is_english = True
     try:
-        transcript = transcript_list.find_transcript(
-            ['en', 'en-US', 'en-GB', 'en-AU', 'en-CA']
-        )
-    except Exception:
-        transcript = next(iter(transcript_list))
-        is_english = False
+        api = YouTubeTranscriptApi()
+        transcript_list = api.list(video_id)
 
-    lang = transcript.language_code
-    print(f"[yt]    captions    {video_id}  lang={lang}  english={is_english}")
-    fetched = transcript.fetch()
+        try:
+            transcript = transcript_list.find_transcript(
+                ['en', 'en-US', 'en-GB', 'en-AU', 'en-CA']
+            )
+        except Exception:
+            transcript = next(iter(transcript_list))
+            is_english = False
 
-    cues = []
-    for entry in fetched:
-        text = str(entry.text).replace('\n', ' ').strip()
-        if text:
-            cues.append({"start": float(entry.start), "text": text})
+        lang = transcript.language_code
+        print(f"[yt]    captions    {video_id}  lang={lang}  english={is_english}")
+        fetched = transcript.fetch()
+
+        cues = []
+        for entry in fetched:
+            text = str(entry.text).replace('\n', ' ').strip()
+            if text:
+                cues.append({"start": float(entry.start), "text": text})
+        if not cues:
+            cues = None
+    except Exception as e:
+        print(f"[yt]    transcript-api failed: {e} — trying yt-dlp subtitles…")
+
+    # ── Fallback 1: yt-dlp auto-generated subtitles ──
+    if not cues:
+        cues = _fetch_subtitles_ytdlp(video_id, url)
+        is_english = True
+
+    # ── Fallback 2: Whisper speech-to-text ──
+    if not cues:
+        print(f"[yt]    no captions found — transcribing with Whisper…")
+        cues = _transcribe_whisper(video_id)
+        is_english = True
 
     if not cues:
-        raise RuntimeError("Transcript is empty.")
+        raise RuntimeError(
+            "No captions found and Whisper transcription failed."
+        )
 
     # ── Translate to English if needed ──
     if not is_english:
@@ -117,6 +135,102 @@ def fetch_transcript_and_title(video_id: str) -> tuple[list[dict], str]:
         print(f"[tr]    done")
 
     return cues, title
+
+
+def _fetch_subtitles_ytdlp(video_id: str, url: str) -> list[dict] | None:
+    """Fallback: download auto-generated subtitles via yt-dlp and parse VTT."""
+    import re as _re, tempfile as _tmp
+    print(f"[yt]    yt-dlp subs  {video_id}  …")
+    with _tmp.TemporaryDirectory() as tmpdir:
+        out_tmpl = os.path.join(tmpdir, "%(id)s.%(ext)s")
+        result = subprocess.run([
+            sys.executable, "-m", "yt_dlp",
+            "--write-auto-sub", "--sub-lang", "en",
+            "--skip-download", "--no-warnings",
+            "-o", out_tmpl, url
+        ], capture_output=True, text=True, timeout=60)
+
+        # Find the downloaded subtitle file
+        vtt_path = None
+        for fname in os.listdir(tmpdir):
+            if fname.endswith(".vtt") or fname.endswith(".srv3") or fname.endswith(".ttml"):
+                vtt_path = os.path.join(tmpdir, fname)
+                break
+
+        if not vtt_path:
+            print(f"[yt]    no subtitle file found. stderr: {result.stderr[:200]}")
+            return None
+
+        print(f"[yt]    parsing     {os.path.basename(vtt_path)}")
+        return _parse_vtt(open(vtt_path, encoding="utf-8").read())
+
+
+def _parse_vtt(content: str) -> list[dict] | None:
+    """Parse WebVTT subtitle file into cues list."""
+    import re as _re
+    TIME_RE = _re.compile(
+        r"(\d{2}):(\d{2}):(\d{2})[.,](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[.,](\d{3})"
+    )
+    cues = []
+    lines = content.splitlines()
+    i = 0
+    while i < len(lines):
+        m = TIME_RE.match(lines[i].strip())
+        if m:
+            h, mn, s, ms = int(m[1]), int(m[2]), int(m[3]), int(m[4])
+            start = h * 3600 + mn * 60 + s + ms / 1000
+            i += 1
+            text_lines = []
+            while i < len(lines) and lines[i].strip():
+                # Strip VTT tags like <00:00:00.000><c>word</c>
+                clean = _re.sub(r"<[^>]+>", "", lines[i]).strip()
+                if clean:
+                    text_lines.append(clean)
+                i += 1
+            text = " ".join(text_lines).strip()
+            if text:
+                cues.append({"start": start, "text": text})
+        else:
+            i += 1
+    # Deduplicate consecutive identical cues (VTT often has overlapping entries)
+    deduped = []
+    for cue in cues:
+        if not deduped or cue["text"] != deduped[-1]["text"]:
+            deduped.append(cue)
+    return deduped or None
+
+
+def _transcribe_whisper(video_id: str) -> list[dict] | None:
+    """Download audio and transcribe (+ translate to English) with Whisper."""
+    try:
+        import whisper
+        audio_path, _ = get_audio_path(video_id)
+        print(f"[whisper] loading model 'base'…")
+        model = whisper.load_model("base")
+
+        # First pass: detect language
+        print(f"[whisper] detecting language…")
+        probe = model.transcribe(audio_path, verbose=False, fp16=False)
+        lang  = probe.get("language", "en")
+        print(f"[whisper] detected lang={lang}")
+
+        if lang == "en":
+            result = probe
+        else:
+            # Re-transcribe with translation to English
+            print(f"[whisper] translating {lang}→en…")
+            result = model.transcribe(audio_path, verbose=False, fp16=False, task="translate")
+
+        cues = []
+        for seg in result.get("segments", []):
+            text = seg.get("text", "").strip()
+            if text:
+                cues.append({"start": float(seg["start"]), "text": text})
+        print(f"[whisper] done  {len(cues)} segments  lang={lang}")
+        return cues or None
+    except Exception as e:
+        print(f"[whisper] failed: {e}")
+        return None
 
 
 def _translate_cues(cues: list[dict], source: str = 'auto') -> list[dict]:
